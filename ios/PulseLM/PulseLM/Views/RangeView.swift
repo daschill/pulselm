@@ -5,6 +5,7 @@ struct RangeView: View {
     var shot: ShotResult?
     var session: [ShotResult] = []
     var practice: PracticePayload?
+    var holeMap: CourseHoleMap? = nil
     var pinOverride: Double? = nil
     @Binding var selectedClub: String
     @Binding var gameMode: String
@@ -14,6 +15,7 @@ struct RangeView: View {
         shot: ShotResult?,
         session: [ShotResult] = [],
         practice: PracticePayload? = nil,
+        holeMap: CourseHoleMap? = nil,
         pinOverride: Double? = nil,
         selectedClub: Binding<String> = .constant("Dr"),
         gameMode: Binding<String> = .constant("practice")
@@ -21,6 +23,7 @@ struct RangeView: View {
         self.shot = shot
         self.session = session
         self.practice = practice
+        self.holeMap = holeMap
         self.pinOverride = pinOverride
         self._selectedClub = selectedClub
         self._gameMode = gameMode
@@ -206,6 +209,9 @@ struct RangeView: View {
                 GeometryReader { geo in
                     ZStack {
                         RangeScenery(pinYards: pinYards)
+                        if let holeMap {
+                            OsmHoleLayer(map: holeMap)
+                        }
                         sessionDots(size: geo.size)
                         dispersionRings(size: geo.size)
                         tracerAndBall(size: geo.size)
@@ -307,6 +313,48 @@ struct RangeView: View {
             return String(format: "on target line, %.0f yards", along)
         }
         return String(format: "%.0f yards along, %.1f yards offline", along, off)
+    }
+}
+
+private struct OsmHoleLayer: View {
+    var map: CourseHoleMap
+
+    var body: some View {
+        Canvas { context, size in
+            fillRings(map.rough, Color(red: 0.12, green: 0.32, blue: 0.12), context: &context, size: size)
+            fillRings(map.fairways, Color(red: 0.34, green: 0.70, blue: 0.30), context: &context, size: size)
+            fillRings(map.water, Color(red: 0.20, green: 0.45, blue: 0.75), context: &context, size: size)
+            fillRings(map.bunkers, Color(red: 0.83, green: 0.72, blue: 0.42), context: &context, size: size)
+            fillRings(map.greens, Color(red: 0.18, green: 0.55, blue: 0.22), context: &context, size: size)
+            if let line = map.hole_line, line.count >= 2 {
+                var path = Path()
+                for (i, pt) in line.enumerated() {
+                    guard pt.count >= 2 else { continue }
+                    let p = RangeLayout.point(along: pt[1], offline: pt[0], size: size)
+                    if i == 0 { path.move(to: p) } else { path.addLine(to: p) }
+                }
+                context.stroke(path, with: .color(.white.opacity(0.35)), style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
+            }
+            for t in map.trees ?? [] where t.count >= 2 {
+                let p = RangeLayout.point(along: t[1], offline: t[0], size: size)
+                var canopy = Path()
+                canopy.addEllipse(in: CGRect(x: p.x - 4, y: p.y - 10, width: 8, height: 10))
+                context.fill(canopy, with: .color(Color(red: 0.07, green: 0.28, blue: 0.10)))
+            }
+        }
+        .allowsHitTesting(false)
+    }
+
+    private func fillRings(_ rings: [[[Double]]]?, _ color: Color, context: inout GraphicsContext, size: CGSize) {
+        for ring in rings ?? [] where ring.count >= 3 {
+            var path = Path()
+            for (i, pt) in ring.enumerated() where pt.count >= 2 {
+                let p = RangeLayout.point(along: pt[1], offline: pt[0], size: size)
+                if i == 0 { path.move(to: p) } else { path.addLine(to: p) }
+            }
+            path.closeSubpath()
+            context.fill(path, with: .color(color.opacity(0.92)))
+        }
     }
 }
 

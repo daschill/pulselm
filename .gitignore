@@ -17,3 +17,5 @@ shots/shot_0*/
 !shots/shot_00001/
 _verify/
 web_demo_*.png
+courses_cache/
+_osm_probe.py

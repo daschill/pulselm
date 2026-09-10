@@ -138,6 +138,8 @@ def course_with_holes(course_id: str, *, fetch: Optional[FetchFn] = None) -> dic
         "state": detail.get("state"),
         "type": detail.get("type"),
         "par": detail.get("par"),
+        "latitude": detail.get("latitude"),
+        "longitude": detail.get("longitude"),
         "holes": targets,
         "attribution": detail.get("_attribution") or ATTRIBUTION,
         "license": detail.get("_license") or "ODbL-1.0",

@@ -71,3 +71,5 @@ def test_ios_sources_bind_shotresult_fields():
     assert "longest" in range_src
     assert "Smash" in range_src
     assert "dispersionRings" in range_src
+    assert "OsmHoleLayer" in range_src
+    assert "fairways" in range_src

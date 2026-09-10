@@ -17,6 +17,7 @@ struct ContentView: View {
                         shot: client.latest,
                         session: client.shots,
                         practice: client.practice,
+                        holeMap: client.holeMap,
                         pinOverride: client.play?.playing == true ? (client.play?.remaining_yd ?? client.play?.pin_yd) : nil,
                         selectedClub: $client.selectedClub,
                         gameMode: $client.gameMode

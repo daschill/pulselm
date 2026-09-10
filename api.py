@@ -148,6 +148,16 @@ def create_app(
             return jsonify(courses_mod.featured())
         return jsonify(courses_mod.search_courses(q, limit=int(request.args.get("limit") or 15)))
 
+    @app.get("/api/v1/courses/<course_id>/map")
+    def course_hole_map(course_id: str) -> Any:
+        import osm_course
+
+        hole = int(request.args.get("hole") or 1)
+        try:
+            return jsonify(osm_course.hole_map_for_course(course_id, hole))
+        except Exception as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 502
+
     @app.get("/api/v1/courses/<course_id>")
     def course_detail(course_id: str) -> Any:
         import courses as courses_mod

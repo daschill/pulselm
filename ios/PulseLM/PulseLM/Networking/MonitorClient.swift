@@ -85,6 +85,21 @@ struct CourseSummary: Codable, Equatable, Sendable, Identifiable {
     var type: String?
 }
 
+struct CourseHoleMap: Codable, Equatable, Sendable {
+    var ok: Bool?
+    var source: String?
+    var hole: Int?
+    var par: Int?
+    var fairways: [[[Double]]]?
+    var greens: [[[Double]]]?
+    var bunkers: [[[Double]]]?
+    var water: [[[Double]]]?
+    var rough: [[[Double]]]?
+    var trees: [[Double]]?
+    var hole_line: [[Double]]?
+    var max_along_yd: Double?
+}
+
 struct CourseListPayload: Codable, Equatable, Sendable {
     var ok: Bool?
     var courses: [CourseSummary]
@@ -119,6 +134,7 @@ final class MonitorClient: ObservableObject {
     @Published var gameMode: String = "practice"
     @Published var play: PlayRound?
     @Published var courseResults: [CourseSummary] = []
+    @Published var holeMap: CourseHoleMap?
     @Published var isBusy = false
     @Published var lastError: String?
 
@@ -193,12 +209,24 @@ final class MonitorClient: ObservableObject {
         if let pin = value.remaining_yd ?? value.pin_yd {
             _ = try? await fetchPractice(pin: pin)
         }
+        if let cid = value.course_id, let hole = value.hole {
+            _ = try? await fetchHoleMap(courseId: cid, hole: hole)
+        }
+        return value
+    }
+
+    func fetchHoleMap(courseId: String, hole: Int) async throws -> CourseHoleMap {
+        let value: CourseHoleMap = try await get(path: "/api/v1/courses/\(courseId)/map?hole=\(hole)")
+        holeMap = value
         return value
     }
 
     func gimmePlay() async throws -> PlayRound {
         let value: PlayRound = try await post(path: "/api/v1/play/gimme")
         play = value
+        if let cid = value.course_id, let hole = value.hole {
+            _ = try? await fetchHoleMap(courseId: cid, hole: hole)
+        }
         return value
     }
 
@@ -232,6 +260,9 @@ final class MonitorClient: ObservableObject {
             _ = try? await fetchSession()
             _ = try? await fetchPractice()
             _ = try? await fetchPlay()
+            if let cid = play?.course_id, let hole = play?.hole, play?.playing == true {
+                _ = try? await fetchHoleMap(courseId: cid, hole: hole)
+            }
         } catch {
             lastError = error.localizedDescription
         }
