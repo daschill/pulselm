@@ -146,9 +146,9 @@ struct ContentView: View {
             practice: client.practice,
             holeMap: client.holeMap,
             pinOverride: client.play?.playing == true ? (client.play?.remaining_yd ?? client.play?.pin_yd) : nil,
+            minimap: true,
             selectedClub: $client.selectedClub,
-            gameMode: $client.gameMode,
-            minimap: true
+            gameMode: $client.gameMode
         )
         .frame(width: 132, height: 168)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
