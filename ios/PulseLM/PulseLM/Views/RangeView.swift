@@ -75,9 +75,9 @@ struct RangeView: View {
 
     private var canvas: some View {
         Color.clear
-            .aspectRatio(0.62, contentMode: .fit)
+            .aspectRatio(0.55, contentMode: .fit)
             .frame(maxWidth: .infinity)
-            .frame(minHeight: 360)
+            .frame(minHeight: 440)
             .overlay {
                 GeometryReader { geo in
                     ZStack {
@@ -251,7 +251,7 @@ private struct RangeScenery: View {
             startPoint: CGPoint(x: size.width / 2, y: 0),
             endPoint: CGPoint(x: size.width / 2, y: size.height * 0.42)
         ))
-        var sun = Path(ellipseIn: CGRect(x: size.width * 0.78, y: 10, width: 28, height: 28))
+        let sun = Path(ellipseIn: CGRect(x: size.width * 0.78, y: 10, width: 28, height: 28))
         context.fill(sun, with: .color(Color(red: 1.0, green: 0.92, blue: 0.55).opacity(0.9)))
     }
 
@@ -376,7 +376,7 @@ private struct RangeScenery: View {
         ]
         for (along, off, h) in trees {
             let p = RangeLayout.point(along: along, offline: off, size: size)
-            var trunk = Path(CGRect(x: p.x - 1.5, y: p.y - h * 0.25, width: 3, height: h * 0.3))
+            let trunk = Path(CGRect(x: p.x - 1.5, y: p.y - h * 0.25, width: 3, height: h * 0.3))
             context.fill(trunk, with: .color(Color(red: 0.28, green: 0.16, blue: 0.08)))
             var canopy = Path()
             canopy.move(to: CGPoint(x: p.x, y: p.y - h))

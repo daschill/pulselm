@@ -9,7 +9,7 @@ struct ContentView: View {
             ScrollView {
                 VStack(spacing: 12) {
                     header
-                    ShotHUD(shot: client.latest)
+                    ShotHUD(shot: client.latest, compact: true)
                     RangeView(shot: client.latest, session: client.shots)
                     sessionStrip
                     armButton
