@@ -2,7 +2,9 @@
 
 Indoor **budget** launch monitor: **4× OV9281 global-shutter + 24 GHz CW radar** (Camarray + dual-strobe; Pi 5/CM4 for four cameras). The **iPhone is display only**. Single-cam `--demo` still runs without radar.
 
-See [docs/BUDGET.md](docs/BUDGET.md) for the honest comparison: we **measure** ball speed and VLA; carry is estimated; spin/club stay JSON `null`. No subscription.
+Have a **Garmin Approach R10**? See [docs/R10.md](docs/R10.md). `python pulselm.py --r10` listens on OpenConnect **TCP 921** and `POST /api/v1/r10` so the iOS range shows R10 shots.
+
+See [docs/BUDGET.md](docs/BUDGET.md). Pi cameras measure speed/VLA; the R10 fills HLA/spin/club when connected.
 
 Two 2 µs 850 nm flashes, 2000 µs apart, in one **OV9281 global-shutter** exposure produce two ball dots. Ball speed is `px_dist * mm_per_px / 0.002` s, converted to mph. Vertical launch angle is `atan2`. Carry/total are derived from those launch conditions. HLA is estimated only when blob-size photometry plus a calibrated `camera_distance_mm` exist; otherwise HLA, spin, and club stay JSON `null` (never `0`).
 

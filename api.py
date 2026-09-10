@@ -28,6 +28,8 @@ def create_app(
     demo: bool = False,
     shots_dir: Optional[Path] = None,
     calibration_path: Optional[Path] = None,
+    r10: bool = False,
+    r10_port: int = 921,
 ) -> Flask:
     app = Flask(__name__)
     CORS(app, resources={r"/*": {"origins": "*"}})
@@ -41,6 +43,8 @@ def create_app(
     app.config["PULSELM_CAL"] = (
         Path(calibration_path) if calibration_path else calibrate.CALIBRATION_PATH
     )
+    app.config["PULSELM_R10"] = bool(r10)
+    app.config["PULSELM_R10_PORT"] = int(r10_port)
 
     if demo:
         store.seed_demo_shot(app.config["PULSELM_SHOTS"])
@@ -66,6 +70,8 @@ def create_app(
                     "camera": "OV9281",
                     "radar": "24ghz_cw",
                     "strobe": True,
+                    "r10": bool(app.config.get("PULSELM_R10")),
+                    "openconnect_port": app.config.get("PULSELM_R10_PORT"),
                 },
             }
         )
@@ -276,6 +282,27 @@ def create_app(
         out = dict(result)
         out["sources"] = fused.get("sources")
         return jsonify(out)
+
+    @app.post("/api/v1/r10")
+    @app.post("/api/v1/openconnect")
+    def r10_ingest() -> Any:
+        import r10 as r10mod
+
+        body = request.get_json(silent=True) or {}
+        if body.get("ShotDataOptions", {}).get("IsHeartBeat"):
+            return jsonify({"ok": True, "heartbeat": True})
+        result = r10mod.ingest_shot(body, shots_root())
+        if result is None:
+            return jsonify(
+                store.build_shot_result(
+                    shot_id="shot_00000",
+                    unix_ts=0,
+                    ok=False,
+                    error="not an R10/OpenConnect shot",
+                    pulse_gap_s=PULSE_GAP_S,
+                )
+            ), 400
+        return jsonify(result)
 
     @app.get("/")
     def index() -> Any:

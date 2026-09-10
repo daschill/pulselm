@@ -17,14 +17,17 @@ _spec.loader.exec_module(cli)
 
 
 def test_parse_args_demo_and_port_override():
-    args = cli.parse_args(["--demo", "--host", "0.0.0.0", "--port", "18080"])
+    args = cli.parse_args(["--demo", "--host", "0.0.0.0", "--port", "18080", "--r10"])
     assert args.demo is True
     assert args.host == "0.0.0.0"
     assert args.port == 18080
+    assert args.r10 is True
+    assert args.r10_port == 921
     default = cli.parse_args([])
     assert default.demo is False
     assert default.host is None
     assert default.port is None
+    assert default.r10 is False
 
 
 def test_serve_bind_error_mentions_8080_and_18080(capsys):

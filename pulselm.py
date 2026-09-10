@@ -25,6 +25,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     p.add_argument("--host", default=None, help="Bind host (default 0.0.0.0)")
     p.add_argument("--port", type=int, default=None, help="Bind port (default 8080)")
+    p.add_argument(
+        "--r10",
+        action="store_true",
+        help="Accept Garmin Approach R10 shots (OpenConnect TCP :921 + POST /api/v1/r10)",
+    )
+    p.add_argument("--r10-port", type=int, default=921, help="OpenConnect listen port (default 921)")
     return p.parse_args(argv)
 
 
@@ -56,7 +62,33 @@ def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
     from api import HOST, PORT, create_app
 
-    app = create_app(demo=args.demo)
+    app = create_app(demo=args.demo, r10=args.r10, r10_port=args.r10_port)
+    if args.r10:
+        import threading
+
+        import r10
+        from r10_server import serve_r10
+
+        stop = threading.Event()
+        shots = app.config["PULSELM_SHOTS"]
+
+        def on_payload(obj):
+            return r10.ingest_shot(obj, shots)
+
+        threading.Thread(
+            target=serve_r10,
+            kwargs={
+                "host": args.host or HOST,
+                "port": args.r10_port,
+                "on_payload": on_payload,
+                "stop": stop,
+            },
+            daemon=True,
+        ).start()
+        print(
+            f"R10 OpenConnect listening on {(args.host or HOST)}:{args.r10_port}",
+            file=sys.stderr,
+        )
     serve(app, args.host or HOST, args.port or PORT)
 
 

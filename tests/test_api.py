@@ -56,6 +56,7 @@ def test_demo_health_and_latest(client):
     assert body["gpio"] is None
     assert body["sensors"]["cameras"] == 4
     assert body["sensors"]["radar"] == "24ghz_cw"
+    assert body["sensors"]["r10"] is False
     latest = client.get("/shot/latest")
     assert latest.status_code == 200
     shot = latest.get_json()
@@ -90,6 +91,38 @@ def test_fuse_radar_overrides_and_keeps_null_spin(client):
     assert shot["club_speed_mph"] is not None
     assert shot["spin_rpm"] is None
     assert shot["sources"]["ball_speed_mph"] == "radar"
+
+
+def test_r10_openconnect_http(client):
+    r = client.post(
+        "/api/v1/r10",
+        json={
+            "DeviceID": "Garmin R10",
+            "Units": "Yards",
+            "ShotNumber": 3,
+            "APIversion": "1",
+            "BallData": {
+                "Speed": 147.5,
+                "SpinAxis": -13.2,
+                "TotalSpin": 3250.0,
+                "HLA": 2.3,
+                "VLA": 14.3,
+                "CarryDistance": 256.5,
+            },
+            "ClubData": {"Speed": 98.2, "FaceToTarget": 1.1, "Path": -2.4},
+            "ShotDataOptions": {
+                "ContainsBallData": True,
+                "ContainsClubData": True,
+            },
+        },
+    )
+    assert r.status_code == 200
+    shot = r.get_json()
+    assert shot["ball_speed_mph"] == 147.5
+    assert shot["spin_rpm"] == 3250.0
+    assert shot["club_speed_mph"] == 98.2
+    latest = client.get("/shot/latest").get_json()
+    assert latest["shot_id"] == shot["shot_id"]
 
 
 def test_demo_index_shows_speed(client):
