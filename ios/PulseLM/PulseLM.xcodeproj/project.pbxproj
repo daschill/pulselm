@@ -48,6 +48,14 @@
 		08A11A000000000000000030 = {
 			isa = PBXGroup;
 			children = (
+				08A11A000000000000000037 /* PulseLM */,
+				08A11A000000000000000031 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		08A11A000000000000000037 /* PulseLM */ = {
+			isa = PBXGroup;
+			children = (
 				08A11A000000000000000010 /* PulseLMApp.swift */,
 				08A11A000000000000000011 /* ContentView.swift */,
 				08A11A000000000000000032 /* Models */,
@@ -57,8 +65,8 @@
 				08A11A000000000000000019 /* Assets.xcassets */,
 				08A11A000000000000000018 /* Info.plist */,
 				08A11A000000000000000036 /* Preview Content */,
-				08A11A000000000000000031 /* Products */,
 			);
+			path = PulseLM;
 			sourceTree = "<group>";
 		};
 		08A11A000000000000000031 /* Products */ = {
@@ -321,10 +329,10 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"Preview Content\"";
+				DEVELOPMENT_ASSET_PATHS = "\"PulseLM/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = Info.plist;
+				INFOPLIST_FILE = PulseLM/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				INFOPLIST_KEY_CFBundleDisplayName = PulseLM;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.sports";
@@ -351,10 +359,10 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"Preview Content\"";
+				DEVELOPMENT_ASSET_PATHS = "\"PulseLM/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = Info.plist;
+				INFOPLIST_FILE = PulseLM/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				INFOPLIST_KEY_CFBundleDisplayName = PulseLM;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.sports";

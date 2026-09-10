@@ -1,49 +1,32 @@
 import Foundation
 
-/// Driving-range landing from ShotResult. Matches Python range_landing.py.
-struct RangeLanding: Equatable {
-    var along_yd: Double?
-    var offline_yd: Double?
-    var on_line: Bool
-    var hla_deg: Double?
-    var carry_yd_est: Double?
-    var shot_id: String?
+/// Landing in yards relative to the target line. Matches range_landing.py.
+struct RangeLanding: Equatable, Sendable {
+    var alongYd: Double?
+    var offlineYd: Double?
+    /// True when the ball is treated as on the target line (no HLA, or no carry).
+    var onLine: Bool
 
-    static func from(carry_yd_est: Double?, hla_deg: Double?) -> RangeLanding {
-        guard let carry = carry_yd_est else {
-            return RangeLanding(
-                along_yd: nil,
-                offline_yd: nil,
-                on_line: true,
-                hla_deg: hla_deg,
-                carry_yd_est: nil,
-                shot_id: nil
-            )
+    /// - If `carry` is nil: along/offline nil, onLine true.
+    /// - If `hla` is nil: along = carry, offline = 0, onLine true.
+    /// - Else: along = carry * cos(hla rad), offline = carry * sin(hla rad), onLine false.
+    /// Positive offline is right of the target line.
+    static func from(carry: Double?, hla: Double?) -> RangeLanding {
+        guard let carry else {
+            return RangeLanding(alongYd: nil, offlineYd: nil, onLine: true)
         }
-        guard let hla = hla_deg else {
-            return RangeLanding(
-                along_yd: carry,
-                offline_yd: 0,
-                on_line: true,
-                hla_deg: nil,
-                carry_yd_est: carry,
-                shot_id: nil
-            )
+        guard let hla else {
+            return RangeLanding(alongYd: carry, offlineYd: 0, onLine: true)
         }
-        let rad = hla * Double.pi / 180
+        let radians = hla * Double.pi / 180.0
         return RangeLanding(
-            along_yd: carry * cos(rad),
-            offline_yd: carry * sin(rad),
-            on_line: false,
-            hla_deg: hla,
-            carry_yd_est: carry,
-            shot_id: nil
+            alongYd: carry * cos(radians),
+            offlineYd: carry * sin(radians),
+            onLine: false
         )
     }
 
     static func from(shot: ShotResult) -> RangeLanding {
-        var land = from(carry_yd_est: shot.carry_yd_est, hla_deg: shot.hla_deg)
-        land.shot_id = shot.shot_id
-        return land
+        from(carry: shot.carry_yd_est, hla: shot.hla_deg)
     }
 }
