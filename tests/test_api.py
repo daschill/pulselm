@@ -32,6 +32,21 @@ def test_demo_range_landing_from_shot(client):
     assert land["on_line"] is True
 
 
+def test_demo_session_and_csv(client):
+    s = client.get("/api/v1/session")
+    assert s.status_code == 200
+    body = s.get_json()
+    assert body["ok"] is True
+    assert body["shot_count"] >= 1
+    assert body["ball_speed_mph_mean"] == pytest.approx(159.1608)
+    assert "spin_rpm" in body["not_measured"]
+    csv = client.get("/shots.csv")
+    assert csv.status_code == 200
+    text = csv.get_data(as_text=True)
+    assert "ball_speed_mph" in text.splitlines()[0]
+    assert "159.1608" in text
+
+
 def test_demo_health_and_latest(client):
     h = client.get("/api/v1/health")
     assert h.status_code == 200

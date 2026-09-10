@@ -1,6 +1,8 @@
 # PulseLM
 
-Indoor golf launch monitor on the cheapest capture path: Raspberry Pi 3 + OV9281 dual-strobe. The **iPhone 15 Pro is display only** (native iOS app + optional Safari LAN page). It is not the camera.
+Indoor **budget** launch monitor on the cheapest capture path: Raspberry Pi 3 + OV9281 dual-strobe (BOM well under a Garmin R10). The **iPhone is display only** (native iOS app + Safari LAN page). It is not the camera.
+
+See [docs/BUDGET.md](docs/BUDGET.md) for the honest comparison: we **measure** ball speed and VLA; carry is estimated; spin/club stay JSON `null`. No subscription.
 
 Two 2 µs 850 nm flashes, 2000 µs apart, in one **OV9281 global-shutter** exposure produce two ball dots. Ball speed is `px_dist * mm_per_px / 0.002` s, converted to mph. Vertical launch angle is `atan2`. Carry/total are derived from those launch conditions. HLA is estimated only when blob-size photometry plus a calibrated `camera_distance_mm` exist; otherwise HLA, spin, and club stay JSON `null` (never `0`).
 

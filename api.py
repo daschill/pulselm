@@ -80,6 +80,43 @@ def create_app(
         payload["shot_id"] = result.get("shot_id")
         return jsonify(payload)
 
+    @app.get("/api/v1/session")
+    def session_view() -> Any:
+        from session import summarize_session
+
+        ids = store.list_shot_ids(shots_root())
+        items = []
+        for sid in ids:
+            try:
+                items.append(store.load_result(sid, shots_root()))
+            except FileNotFoundError:
+                continue
+        summary = summarize_session(items)
+        summary["schema"] = store.SCHEMA
+        return jsonify(summary)
+
+    @app.get("/shots.csv")
+    def shots_csv() -> Any:
+        ids = store.list_shot_ids(shots_root())
+        lines = [",".join(store.SHOT_FIELDS)]
+        for sid in ids:
+            try:
+                row = store.load_result(sid, shots_root())
+            except FileNotFoundError:
+                continue
+            cells = []
+            for k in store.SHOT_FIELDS:
+                v = row.get(k)
+                if v is None:
+                    cells.append("")
+                elif isinstance(v, bool):
+                    cells.append("true" if v else "false")
+                else:
+                    cells.append(str(v))
+            lines.append(",".join(cells))
+        body = "\n".join(lines) + "\n"
+        return Response(body, mimetype="text/csv")
+
     @app.get("/shot/latest")
     def shot_latest() -> Any:
         result = store.latest_result(shots_root())

@@ -10,6 +10,7 @@ struct ContentView: View {
                 VStack(spacing: 16) {
                     header
                     ShotHUD(shot: client.latest)
+                    sessionStrip
                     RangeView(shot: client.latest)
                     armButton
                     statusLine
@@ -74,6 +75,30 @@ struct ContentView: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
         .background(Color.white.opacity(0.06), in: Capsule())
+    }
+
+    private var sessionStrip: some View {
+        let s = client.sessionSummary
+        return HStack(spacing: 10) {
+            sessionCell("Shots", s.map { "\($0.shot_count)" } ?? "—")
+            sessionCell("Avg mph", ShotMapping.speedString(s?.ball_speed_mph_mean))
+            sessionCell("Avg carry", ShotMapping.carryString(s?.carry_yd_est_mean))
+            sessionCell("Best", ShotMapping.speedString(s?.ball_speed_mph_max))
+        }
+    }
+
+    private func sessionCell(_ label: String, _ value: String) -> some View {
+        VStack(spacing: 4) {
+            Text(label.uppercased())
+                .font(.system(size: 9, weight: .semibold, design: .rounded))
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.system(size: 15, weight: .semibold, design: .rounded))
+                .monospacedDigit()
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
+        .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 12))
     }
 
     private var armButton: some View {

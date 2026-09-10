@@ -15,6 +15,17 @@ struct ShotsListResponse: Codable, Equatable, Sendable {
     var shots: [ShotResult]
 }
 
+struct SessionSummary: Codable, Equatable, Sendable {
+    var ok: Bool
+    var shot_count: Int
+    var ball_speed_mph_mean: Double?
+    var ball_speed_mph_sd: Double?
+    var ball_speed_mph_max: Double?
+    var vla_deg_mean: Double?
+    var carry_yd_est_mean: Double?
+    var carry_yd_est_max: Double?
+}
+
 /// HTTP client for the Pi launch monitor. iPhone is display-only (no camera / BLE / motion).
 @MainActor
 final class MonitorClient: ObservableObject {
@@ -27,6 +38,7 @@ final class MonitorClient: ObservableObject {
     @Published var latest: ShotResult?
     @Published var shots: [ShotResult] = []
     @Published var health: HealthResponse?
+    @Published var sessionSummary: SessionSummary?
     @Published var isBusy = false
     @Published var lastError: String?
 
@@ -86,11 +98,19 @@ final class MonitorClient: ObservableObject {
         return list.shots
     }
 
+    func fetchSession() async throws -> SessionSummary {
+        let value: SessionSummary = try await get(path: "/api/v1/session")
+        sessionSummary = value
+        lastError = nil
+        return value
+    }
+
     func refresh() async {
         do {
             _ = try await fetchHealth()
             _ = try await fetchLatest()
             _ = try? await fetchShots()
+            _ = try? await fetchSession()
         } catch {
             lastError = error.localizedDescription
         }

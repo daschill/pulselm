@@ -17,11 +17,10 @@ from service.pulse import PULSE_GAP_S
 
 # mm/s -> mph: 3600 s/h / (25.4 mm/in * 12 in/ft * 5280 ft/mi)
 MM_S_TO_MPH = 3600.0 / (25.4 * 12.0 * 5280.0)
+from ball_flight import estimate_carry_total_yd as estimate_carry_total_yd
+
 MPH_TO_MPS = 0.44704
 M_TO_YD = 1.0936132983377078
-# Extra g approximates aerodynamic drag for a Week-1 indoor carry estimate.
-CARRY_G_EFF = 12.5
-TOTAL_ROLL_FACTOR = 1.07
 GOLF_BALL_DIAMETER_MM = 42.67
 
 
@@ -114,22 +113,6 @@ def hla_deg_from_blob_sizes(
     z2 = float(camera_distance_mm) * d_cal_px / float(diameter2_px)
     dx_mm = float(dx_px) * mm_per_px
     return math.degrees(math.atan2(z2 - z1, dx_mm))
-
-
-def estimate_carry_total_yd(ball_speed_mph: float, vla_deg: float) -> tuple[float, float]:
-    """Vacuum-like range with inflated g as a drag stand-in. Not a sim model.
-
-    Dual-strobe sees unmarked-ball launch only: no spin, so no Magnus term.
-    Non-positive VLA from a ground-level tee lands at the tee (carry 0), not
-    a negative range behind the camera.
-    """
-    v = ball_speed_mph * MPH_TO_MPS
-    theta = math.radians(vla_deg)
-    if v <= 0 or theta <= 0 or abs(math.sin(2.0 * theta)) < 1e-12:
-        return 0.0, 0.0
-    range_m = (v * v * math.sin(2.0 * theta)) / CARRY_G_EFF
-    carry_yd = range_m * M_TO_YD
-    return carry_yd, carry_yd * TOTAL_ROLL_FACTOR
 
 
 def _label_connected(binary: np.ndarray) -> tuple[np.ndarray, int]:

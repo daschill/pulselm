@@ -58,8 +58,8 @@ struct ShotResult: Codable, Equatable, Hashable, Identifiable, Sendable {
         club_speed_mph: nil,
         face_deg: nil,
         path_deg: nil,
-        carry_yd_est: 265.75,
-        total_yd_est: 284.35,
+        carry_yd_est: 271.70,
+        total_yd_est: 288.47,
         confidence: 0.94,
         ghost_px: 79.0569,
         pulse_gap_s: 0.002

@@ -144,6 +144,11 @@
       <h1>PulseLM</h1>
       <div class="tag">indoor dual-strobe · iPhone display</div>
     </header>
+    <section class="grid" id="session" aria-label="Session">
+      <div class="stat"><span class="label">Shots</span><b id="sess-n">—</b></div>
+      <div class="stat"><span class="label">Avg mph</span><b id="sess-mph">—</b></div>
+      <div class="stat"><span class="label">Avg carry</span><b id="sess-carry">—</b></div>
+    </section>
     <section class="speed-panel" data-shot-id="{{SHOT_ID}}">
       <div class="label">Ball speed</div>
       <div id="ball-speed" class="speed-number">{{BALL_SPEED_MPH}}</div>
@@ -265,14 +270,26 @@
         placeLanding(await r.json());
       } catch (e) { /* keep shot-derived landing */ }
     }
+    async function loadSession() {
+      try {
+        const r = await fetch("/api/v1/session");
+        if (!r.ok) return;
+        const s = await r.json();
+        setText("sess-n", s.shot_count != null ? String(s.shot_count) : "—");
+        setText("sess-mph", fmt(s.ball_speed_mph_mean, 1));
+        setText("sess-carry", fmt(s.carry_yd_est_mean, 0));
+      } catch (e) { /* keep dashes */ }
+    }
     async function loadLatest() {
       const r = await fetch("/shot/latest");
       if (!r.ok) return;
       render(await r.json());
+      loadSession();
     }
     document.getElementById("arm").addEventListener("click", async () => {
       const r = await fetch("/arm", { method: "POST" });
       render(await r.json());
+      loadSession();
     });
     (function applyServerLanding() {
       const g = document.getElementById("landing");
