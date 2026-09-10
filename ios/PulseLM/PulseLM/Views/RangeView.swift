@@ -5,6 +5,7 @@ struct RangeView: View {
     var shot: ShotResult?
     var session: [ShotResult] = []
     var practice: PracticePayload?
+    var pinOverride: Double? = nil
     @Binding var selectedClub: String
     @Binding var gameMode: String
     @State private var pinYards: Double = 250
@@ -13,12 +14,14 @@ struct RangeView: View {
         shot: ShotResult?,
         session: [ShotResult] = [],
         practice: PracticePayload? = nil,
+        pinOverride: Double? = nil,
         selectedClub: Binding<String> = .constant("Dr"),
         gameMode: Binding<String> = .constant("practice")
     ) {
         self.shot = shot
         self.session = session
         self.practice = practice
+        self.pinOverride = pinOverride
         self._selectedClub = selectedClub
         self._gameMode = gameMode
     }
@@ -45,6 +48,12 @@ struct RangeView: View {
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Driving range")
         .accessibilityValue(accessibilityLanding)
+        .onAppear {
+            if let pinOverride { pinYards = pinOverride }
+        }
+        .onChange(of: pinOverride) { _, new in
+            if let new { pinYards = new }
+        }
     }
 
     private var clubAndGame: some View {

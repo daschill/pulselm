@@ -202,4 +202,11 @@ def ingest_shot(payload: dict[str, Any], shots_dir=None) -> Optional[dict[str, A
         },
         shots_dir=shots_dir,
     )
-    return store.load_result(sid, shots_dir)
+    saved = store.load_result(sid, shots_dir)
+    try:
+        import play as play_mod
+
+        play_mod.apply_shot(saved, shots_dir or store.SHOTS_DIR)
+    except Exception:
+        pass
+    return saved

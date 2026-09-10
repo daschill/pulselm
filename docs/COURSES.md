@@ -10,7 +10,9 @@ Free, no key for reads. ~16,800 US courses with scorecards and tee yardages.
 - Attribution required: OpenGolfAPI / © OpenStreetMap contributors (ODbL)
 - Share-alike if we ship a derived database
 
-What we get: **name, location, par, hole yardages** (blue/white tees). That is enough to set the 500 yd range pin to a real hole (e.g. Bethpage Black 4 = ~424 yd from the open scorecard).
+What we get: **name, location, par, hole yardages** (blue/white tees). PulseLM **Play a course** starts an 18-hole round: each LM shot reduces remaining yards; inside 3 yd is a gimme putt. Not a photoreal 3D replica.
+
+`POST /api/v1/play/start {"course_id":"..."}` then hit balls (Arm or R10). `GET /api/v1/play` is the scorecard.
 
 Featured in the app: Bethpage Black, Bethpage Red, Pebble Beach (scorecard facts only).
 

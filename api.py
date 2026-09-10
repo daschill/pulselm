@@ -108,6 +108,36 @@ def create_app(
         summary["schema"] = store.SCHEMA
         return jsonify(summary)
 
+    @app.get("/api/v1/play")
+    def play_status() -> Any:
+        import play as play_mod
+
+        return jsonify(play_mod.public_view(play_mod.load_round(shots_root())))
+
+    @app.post("/api/v1/play/start")
+    def play_start() -> Any:
+        import play as play_mod
+
+        body = request.get_json(silent=True) or {}
+        cid = body.get("course_id") or (request.args.get("course_id"))
+        if not cid:
+            return jsonify({"ok": False, "error": "course_id required"}), 400
+        try:
+            doc = play_mod.start_round(str(cid), shots_root())
+        except Exception as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 400
+        return jsonify(play_mod.public_view(doc))
+
+    @app.post("/api/v1/play/gimme")
+    def play_gimme() -> Any:
+        import play as play_mod
+
+        try:
+            doc = play_mod.gimme(shots_root())
+        except ValueError as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 400
+        return jsonify(play_mod.public_view(doc))
+
     @app.get("/api/v1/courses")
     def courses_search() -> Any:
         import courses as courses_mod
@@ -239,8 +269,15 @@ def create_app(
     def arm() -> Any:
         if app.config["PULSELM_DEMO"]:
             result = store.record_demo_shot(shots_root())
-            return jsonify(result)
-        return jsonify(_live_capture(shots_root(), app.config["PULSELM_CAL"]))
+        else:
+            result = _live_capture(shots_root(), app.config["PULSELM_CAL"])
+        try:
+            import play as play_mod
+
+            play_mod.apply_shot(result, shots_root())
+        except Exception:
+            pass
+        return jsonify(result)
 
     @app.post("/calibrate")
     def do_calibrate() -> Any:

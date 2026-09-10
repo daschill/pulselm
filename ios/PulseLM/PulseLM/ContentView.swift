@@ -3,6 +3,7 @@ import SwiftUI
 struct ContentView: View {
     @EnvironmentObject private var client: MonitorClient
     @State private var showHostEditor = false
+    @State private var showCourses = false
 
     var body: some View {
         NavigationStack {
@@ -10,10 +11,12 @@ struct ContentView: View {
                 VStack(spacing: 12) {
                     header
                     ShotHUD(shot: client.latest, compact: true)
+                    playBanner
                     RangeView(
                         shot: client.latest,
                         session: client.shots,
                         practice: client.practice,
+                        pinOverride: client.play?.playing == true ? (client.play?.remaining_yd ?? client.play?.pin_yd) : nil,
                         selectedClub: $client.selectedClub,
                         gameMode: $client.gameMode
                     )
@@ -44,12 +47,86 @@ struct ContentView: View {
             .sheet(isPresented: $showHostEditor) {
                 hostSheet
             }
+            .sheet(isPresented: $showCourses) {
+                courseSheet
+            }
             .task {
                 await client.refresh()
             }
             .refreshable {
                 await client.refresh()
             }
+        }
+    }
+
+    private var playBanner: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Button {
+                    showCourses = true
+                    Task { _ = try? await client.searchCourses() }
+                } label: {
+                    Text(client.play?.playing == true ? (client.play?.course_name ?? "Course") : "Play a course")
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                }
+                Spacer()
+                if client.play?.playing == true {
+                    Button("Gimme") {
+                        Task {
+                            _ = try? await client.gimmePlay()
+                            _ = try? await client.fetchPlay()
+                        }
+                    }
+                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                }
+            }
+            if client.play?.playing == true {
+                Text(playLine)
+                    .font(.system(size: 12, weight: .medium, design: .rounded))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(12)
+        .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 14))
+    }
+
+    private var playLine: String {
+        let p = client.play
+        let hole = p?.hole.map { "Hole \($0)" } ?? "Hole"
+        let par = p?.hole_par.map { "par \($0)" } ?? ""
+        let rem = p?.remaining_yd.map { String(format: "%.0f yd left", $0) } ?? ""
+        let st = p?.strokes.map { "\($0) strokes" } ?? ""
+        let tp = p?.to_par.map { $0 == 0 ? "E" : String(format: "%+d", $0) } ?? ""
+        return [hole, par, rem, st, tp].filter { !$0.isEmpty }.joined(separator: " · ")
+    }
+
+    private var courseSheet: some View {
+        NavigationStack {
+            List(client.courseResults) { c in
+                Button {
+                    Task {
+                        if let id = Optional(c.id) {
+                            _ = try? await client.startPlay(courseId: id)
+                            showCourses = false
+                        }
+                    }
+                } label: {
+                    VStack(alignment: .leading) {
+                        Text(c.name ?? c.id)
+                            .font(.headline)
+                        Text([c.city, c.state, c.par.map { "par \($0)" }].compactMap { $0 }.joined(separator: " · "))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .navigationTitle("Play")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") { showCourses = false }
+                }
+            }
+            .task { _ = try? await client.searchCourses() }
         }
     }
 
@@ -183,6 +260,10 @@ struct ContentView: View {
             _ = try await client.arm()
             _ = try? await client.fetchShots()
             _ = try? await client.fetchSession()
+            _ = try? await client.fetchPlay()
+            if let pin = client.play?.remaining_yd ?? client.play?.pin_yd {
+                _ = try? await client.fetchPractice(pin: pin)
+            }
         } catch {
             client.lastError = error.localizedDescription
         }

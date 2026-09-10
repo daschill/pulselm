@@ -42,6 +42,46 @@ struct PracticePayload: Codable, Equatable, Sendable {
     var shot_count: Int?
 }
 
+struct PlayHoleScore: Codable, Equatable, Sendable {
+    var hole: Int
+    var par: Int?
+    var strokes: Int
+    var to_par: Int
+}
+
+struct PlayRound: Codable, Equatable, Sendable {
+    var ok: Bool
+    var playing: Bool
+    var course_id: String?
+    var course_name: String?
+    var city: String?
+    var state: String?
+    var par: Int?
+    var hole: Int?
+    var hole_par: Int?
+    var pin_yd: Double?
+    var remaining_yd: Double?
+    var strokes: Int?
+    var thru: Int?
+    var to_par: Int?
+    var scorecard: [PlayHoleScore]?
+    var attribution: String?
+}
+
+struct CourseSummary: Codable, Equatable, Sendable, Identifiable {
+    var id: String
+    var name: String?
+    var city: String?
+    var state: String?
+    var par: Int?
+    var type: String?
+}
+
+struct CourseListPayload: Codable, Equatable, Sendable {
+    var ok: Bool?
+    var courses: [CourseSummary]
+}
+
 struct SessionSummary: Codable, Equatable, Sendable {
     var ok: Bool
     var shot_count: Int
@@ -69,6 +109,8 @@ final class MonitorClient: ObservableObject {
     @Published var practice: PracticePayload?
     @Published var selectedClub: String = "Dr"
     @Published var gameMode: String = "practice"
+    @Published var play: PlayRound?
+    @Published var courseResults: [CourseSummary] = []
     @Published var isBusy = false
     @Published var lastError: String?
 
@@ -128,6 +170,35 @@ final class MonitorClient: ObservableObject {
         return list.shots
     }
 
+    func fetchPlay() async throws -> PlayRound {
+        let value: PlayRound = try await get(path: "/api/v1/play")
+        play = value
+        return value
+    }
+
+    func startPlay(courseId: String) async throws -> PlayRound {
+        let value: PlayRound = try await post(path: "/api/v1/play/start", json: ["course_id": courseId])
+        play = value
+        if let pin = value.remaining_yd ?? value.pin_yd {
+            _ = try? await fetchPractice(pin: pin)
+        }
+        return value
+    }
+
+    func gimmePlay() async throws -> PlayRound {
+        let value: PlayRound = try await post(path: "/api/v1/play/gimme")
+        play = value
+        return value
+    }
+
+    func searchCourses(q: String = "") async throws -> [CourseSummary] {
+        let path = q.isEmpty ? "/api/v1/courses" : "/api/v1/courses?q=\(q.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? q)"
+        let payload: CourseListPayload = try await get(path: path)
+        // featured payload nests full courses; map name
+        courseResults = payload.courses
+        return payload.courses
+    }
+
     func fetchPractice(pin: Double = 250) async throws -> PracticePayload {
         let value: PracticePayload = try await get(path: "/api/v1/practice?pin=\(Int(pin))")
         practice = value
@@ -149,6 +220,7 @@ final class MonitorClient: ObservableObject {
             _ = try? await fetchShots()
             _ = try? await fetchSession()
             _ = try? await fetchPractice()
+            _ = try? await fetchPlay()
         } catch {
             lastError = error.localizedDescription
         }
@@ -161,10 +233,14 @@ final class MonitorClient: ObservableObject {
         return try await send(request, allowHTTPErrorBody: allowHTTPErrorBody)
     }
 
-    private func post<T: Decodable>(path: String) async throws -> T {
+    private func post<T: Decodable>(path: String, json: [String: String]? = nil) async throws -> T {
         var request = URLRequest(url: endpoint(path))
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Accept")
+        if let json {
+            request.httpBody = try JSONSerialization.data(withJSONObject: json)
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        }
         return try await send(request, allowHTTPErrorBody: true)
     }
 
