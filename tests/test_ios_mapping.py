@@ -72,6 +72,10 @@ def test_ios_sources_bind_shotresult_fields():
     assert "longest" in range_src
     assert "Smash" in range_src
     assert "dispersionRings" in range_src
+    cv = (IOS_ROOT / "PulseLM" / "ContentView.swift").read_text(encoding="utf-8")
+    assert "dataTileColumn" in cv
+    assert "minimapPanel" in cv
+    assert "bayTopBar" in cv
     three = (IOS_ROOT / "PulseLM" / "Views" / "Course3DView.swift").read_text(encoding="utf-8")
     assert "SceneKit" in three
     assert "SCNScene" in three

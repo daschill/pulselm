@@ -7,6 +7,7 @@ struct RangeView: View {
     var practice: PracticePayload?
     var holeMap: CourseHoleMap? = nil
     var pinOverride: Double? = nil
+    var minimap: Bool = false
     @Binding var selectedClub: String
     @Binding var gameMode: String
     @State private var pinYards: Double = 250
@@ -17,6 +18,7 @@ struct RangeView: View {
         practice: PracticePayload? = nil,
         holeMap: CourseHoleMap? = nil,
         pinOverride: Double? = nil,
+        minimap: Bool = false,
         selectedClub: Binding<String> = .constant("Dr"),
         gameMode: Binding<String> = .constant("practice")
     ) {
@@ -25,6 +27,7 @@ struct RangeView: View {
         self.practice = practice
         self.holeMap = holeMap
         self.pinOverride = pinOverride
+        self.minimap = minimap
         self._selectedClub = selectedClub
         self._gameMode = gameMode
     }
@@ -35,12 +38,16 @@ struct RangeView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            clubAndGame
-            pinPicker
-            dataTiles
+            if !minimap {
+                clubAndGame
+                pinPicker
+                dataTiles
+            }
             canvas
-            gamesStrip
-            callout
+            if !minimap {
+                gamesStrip
+                callout
+            }
         }
         .background(Color(red: 0.02, green: 0.04, blue: 0.03))
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
