@@ -10,6 +10,8 @@ from flask import Flask, Response, jsonify, request, send_file
 from flask_cors import CORS
 
 import calibrate
+import range_landing
+import shot_ui
 import store
 from service.pulse import PULSE_GAP_S, STROBE_PIN, TRIG_PIN
 from vision import analyze_frame, metrics_from_dots
@@ -60,6 +62,23 @@ def create_app(
                 "schema": store.SCHEMA,
             }
         )
+
+    @app.get("/api/v1/range")
+    def range_view() -> Any:
+        result = store.latest_result(shots_root())
+        if result is None:
+            return jsonify(
+                store.build_shot_result(
+                    shot_id="shot_00000",
+                    unix_ts=0,
+                    ok=False,
+                    error="no shots",
+                    pulse_gap_s=PULSE_GAP_S,
+                )
+            ), 404
+        payload = range_landing.landing_from_shot(result)
+        payload["shot_id"] = result.get("shot_id")
+        return jsonify(payload)
 
     @app.get("/shot/latest")
     def shot_latest() -> Any:
@@ -160,20 +179,26 @@ def create_app(
         vla = ""
         carry = ""
         sid = ""
+        along = ""
+        offline = "0"
         if latest and latest.get("ball_speed_mph") is not None:
-            speed = f"{float(latest['ball_speed_mph']):.2f}"
-            vla = f"{float(latest['vla_deg']):.1f}" if latest.get("vla_deg") is not None else "—"
-            carry = (
-                f"{float(latest['carry_yd_est']):.0f}"
-                if latest.get("carry_yd_est") is not None
-                else "—"
-            )
+            hud = shot_ui.hud_from_shot(latest)
+            speed = hud["speed_string"]
+            vla = hud["vla_string"]
+            carry = hud["carry_string"]
             sid = latest.get("shot_id") or ""
+            land = hud["landing"]
+            if land.get("along_yd") is not None:
+                along = f"{float(land['along_yd']):.1f}"
+            if land.get("offline_yd") is not None:
+                offline = f"{float(land['offline_yd']):.1f}"
         html = (
             html.replace("{{BALL_SPEED_MPH}}", speed or "—")
             .replace("{{VLA_DEG}}", vla or "—")
             .replace("{{CARRY_YD}}", carry or "—")
             .replace("{{SHOT_ID}}", sid)
+            .replace("{{ALONG_YD}}", along or "—")
+            .replace("{{OFFLINE_YD}}", offline)
             .replace("{{DEMO}}", "true" if app.config["PULSELM_DEMO"] else "false")
         )
         return Response(html, mimetype="text/html")
@@ -208,6 +233,7 @@ def _live_capture(shots_root: Path, cal_path: Optional[Path] = None) -> dict[str
         error=None,
         ball_speed_mph=analyzed["ball_speed_mph"],
         vla_deg=analyzed["vla_deg"],
+        hla_deg=analyzed.get("hla_deg"),
         carry_yd_est=analyzed["carry_yd_est"],
         total_yd_est=analyzed["total_yd_est"],
         confidence=analyzed["confidence"],

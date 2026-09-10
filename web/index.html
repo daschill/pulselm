@@ -113,6 +113,29 @@
       background: #000;
       min-height: 8rem;
     }
+    .range {
+      margin-top: 1.25rem;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 1.25rem;
+      overflow: hidden;
+      padding: 0.65rem 0.65rem 0.5rem;
+    }
+    .range .label { margin: 0 0 0.4rem 0.2rem; }
+    .range svg { width: 100%; height: auto; display: block; border-radius: 0.75rem; }
+    .range .sky { fill: #0a140e; }
+    .range .rough { fill: #16321c; }
+    .range .fairway { fill: #2a6a38; }
+    .range .target { stroke: #e8f4ea; stroke-width: 1.2; stroke-dasharray: 5 7; }
+    .range .tick { stroke: rgba(244, 247, 251, 0.28); stroke-width: 1; }
+    .range .tick-label {
+      fill: #c9d6cc;
+      font-size: 9px;
+      font-family: ui-sans-serif, system-ui, sans-serif;
+    }
+    .range .tee { fill: #8a6a3a; }
+    .range .ball { fill: #f4f7fb; stroke: #062214; stroke-width: 1; }
+    .range .ball-shadow { fill: rgba(0, 0, 0, 0.35); }
   </style>
 </head>
 <body>
@@ -132,16 +155,79 @@
       <div class="stat"><span class="label">Shot</span><b id="shot-id">{{SHOT_ID}}</b></div>
     </section>
     <button id="arm" type="button">Arm</button>
+    <section class="range" aria-label="Driving range">
+      <div class="label">Range</div>
+      <svg id="range" viewBox="0 0 240 370" role="img" aria-label="Driving range">
+        <rect class="sky" x="0" y="0" width="240" height="370"></rect>
+        <polygon class="rough" points="8,360 232,360 210,18 30,18"></polygon>
+        <polygon class="fairway" points="78,360 162,360 138,18 102,18"></polygon>
+        <line class="target" x1="120" y1="360" x2="120" y2="18"></line>
+        <line class="tick" x1="40" y1="303" x2="200" y2="303"></line>
+        <text class="tick-label" x="12" y="306">50</text>
+        <line class="tick" x1="42" y1="246" x2="198" y2="246"></line>
+        <text class="tick-label" x="8" y="249">100</text>
+        <line class="tick" x1="44" y1="189" x2="196" y2="189"></line>
+        <text class="tick-label" x="8" y="192">150</text>
+        <line class="tick" x1="46" y1="132" x2="194" y2="132"></line>
+        <text class="tick-label" x="8" y="135">200</text>
+        <line class="tick" x1="48" y1="75" x2="192" y2="75"></line>
+        <text class="tick-label" x="8" y="78">250</text>
+        <rect class="tee" x="108" y="352" width="24" height="8" rx="2"></rect>
+        <g id="landing" data-along="{{ALONG_YD}}" data-offline="{{OFFLINE_YD}}" visibility="hidden">
+          <ellipse class="ball-shadow" cx="0" cy="4" rx="7" ry="3"></ellipse>
+          <circle class="ball" r="6"></circle>
+        </g>
+      </svg>
+    </section>
     <img class="raw" id="raw" alt="dual-strobe capture">
     <p class="meta" id="status">Week 1 · HLA / spin / club null · pulse gap 0.002 s</p>
   </main>
   <script>
     const DEMO = {{DEMO}};
+    const RANGE_MAX_YD = 300;
+    const RANGE_HALF_YD = 50;
+    const TEE_Y = 360;
+    const FAR_Y = 18;
+    const CENTER_X = 120;
+    const OFFLINE_PX = 90;
     function fmt(n, digits) {
       if (n === null || n === undefined || n === "") return "—";
       const x = Number(n);
       if (!Number.isFinite(x)) return "—";
       return x.toFixed(digits);
+    }
+    function landingFromShot(shot) {
+      const carry = shot && shot.carry_yd_est;
+      if (carry === null || carry === undefined || carry === "") {
+        return { along_yd: null, offline_yd: null, on_line: !shot || shot.hla_deg == null };
+      }
+      const c = Number(carry);
+      if (!Number.isFinite(c)) {
+        return { along_yd: null, offline_yd: null, on_line: shot.hla_deg == null };
+      }
+      if (shot.hla_deg === null || shot.hla_deg === undefined) {
+        return { along_yd: c, offline_yd: 0, on_line: true };
+      }
+      const rad = Number(shot.hla_deg) * Math.PI / 180;
+      return {
+        along_yd: c * Math.cos(rad),
+        offline_yd: c * Math.sin(rad),
+        on_line: false
+      };
+    }
+    function placeLanding(landing) {
+      const g = document.getElementById("landing");
+      const along = landing && Number(landing.along_yd);
+      if (!landing || !Number.isFinite(along)) {
+        g.setAttribute("visibility", "hidden");
+        return;
+      }
+      const offline = Number(landing.offline_yd);
+      const o = Number.isFinite(offline) ? offline : 0;
+      const y = TEE_Y - (along / RANGE_MAX_YD) * (TEE_Y - FAR_Y);
+      const x = CENTER_X + (o / RANGE_HALF_YD) * OFFLINE_PX;
+      g.setAttribute("transform", "translate(" + x + "," + y + ")");
+      g.setAttribute("visibility", "visible");
     }
     function render(shot) {
       if (!shot) return;
@@ -157,6 +243,15 @@
       if (shot.shot_id) {
         document.getElementById("raw").src = "/shot/" + shot.shot_id + "/raw.png?t=" + Date.now();
       }
+      placeLanding(landingFromShot(shot));
+      refreshRange();
+    }
+    async function refreshRange() {
+      try {
+        const r = await fetch("/api/v1/range");
+        if (!r.ok) return;
+        placeLanding(await r.json());
+      } catch (e) { /* keep shot-derived landing */ }
     }
     async function loadLatest() {
       const r = await fetch("/shot/latest");
@@ -167,6 +262,13 @@
       const r = await fetch("/arm", { method: "POST" });
       render(await r.json());
     });
+    (function applyServerLanding() {
+      const g = document.getElementById("landing");
+      placeLanding({
+        along_yd: Number(g.dataset.along),
+        offline_yd: Number(g.dataset.offline)
+      });
+    })();
     loadLatest();
   </script>
 </body>

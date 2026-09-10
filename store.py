@@ -69,9 +69,20 @@ def build_shot_result(
     confidence: Optional[float] = None,
     ghost_px: Optional[float] = None,
     pulse_gap_s: float = PULSE_GAP_S,
+    hla_deg: Optional[float] = None,
+    spin_rpm: Optional[float] = None,
+    spin_axis_deg: Optional[float] = None,
+    club_speed_mph: Optional[float] = None,
+    face_deg: Optional[float] = None,
+    path_deg: Optional[float] = None,
     **_ignored: Any,
 ) -> dict[str, Any]:
-    """Assemble a ShotResult. Missing metrics are JSON null, never 0-as-missing."""
+    """Assemble a ShotResult. Missing metrics are JSON null, never 0-as-missing.
+
+    ``hla_deg`` may be passed through from blob-size photometry. Spin and club
+    stay null: no ball markings and no club in the cheap dual-strobe frame.
+    """
+    del spin_rpm, spin_axis_deg, club_speed_mph, face_deg, path_deg
     result: dict[str, Any] = {
         "schema": SCHEMA,
         "shot_id": shot_id,
@@ -80,7 +91,7 @@ def build_shot_result(
         "error": error,
         "ball_speed_mph": ball_speed_mph,
         "vla_deg": vla_deg,
-        "hla_deg": _null(),
+        "hla_deg": hla_deg,
         "spin_rpm": _null(),
         "spin_axis_deg": _null(),
         "club_speed_mph": _null(),

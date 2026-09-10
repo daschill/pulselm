@@ -22,6 +22,16 @@ def client(tmp_path: Path):
         yield c
 
 
+def test_demo_range_landing_from_shot(client):
+    r = client.get("/api/v1/range")
+    assert r.status_code == 200
+    land = r.get_json()
+    fixture = load_fixture_result()
+    assert land["along_yd"] == pytest.approx(float(fixture["carry_yd_est"]))
+    assert land["offline_yd"] == 0.0
+    assert land["on_line"] is True
+
+
 def test_demo_health_and_latest(client):
     h = client.get("/api/v1/health")
     assert h.status_code == 200

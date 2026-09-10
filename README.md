@@ -1,8 +1,8 @@
-# PulseLM Week 1
+# PulseLM
 
-Indoor golf launch monitor. Raspberry Pi 3 captures; **iPhone 15 Pro is display only**.
+Indoor golf launch monitor on the cheapest capture path: Raspberry Pi 3 + OV9281 dual-strobe. The **iPhone 15 Pro is display only** (native iOS app + optional Safari LAN page). It is not the camera.
 
-Two 2 µs 850 nm flashes, 2000 µs apart, in one **OV9281 global-shutter** exposure produce two ball dots. Ball speed is `px_dist * mm_per_px / 0.002` s, converted to mph. Vertical launch angle is `atan2`. HLA, spin, and club stay `null`.
+Two 2 µs 850 nm flashes, 2000 µs apart, in one **OV9281 global-shutter** exposure produce two ball dots. Ball speed is `px_dist * mm_per_px / 0.002` s, converted to mph. Vertical launch angle is `atan2`. Carry/total are derived from those launch conditions. HLA is estimated only when blob-size photometry plus a calibrated `camera_distance_mm` exist; otherwise HLA, spin, and club stay JSON `null` (never `0`).
 
 ## Hardware
 
@@ -28,8 +28,9 @@ Flask listens on **0.0.0.0:8080** with CORS (Pi 3; iPhone Safari is display only
 
 | Method | Path | Notes |
 |--------|------|--------|
-| GET | `/` | Display page; includes ball speed |
+| GET | `/` | Display + driving range; includes ball speed |
 | GET | `/api/v1/health` | Health |
+| GET | `/api/v1/range` | Landing from latest ShotResult (`along_yd`, `offline_yd`) |
 | GET | `/shot/latest` | ShotResult JSON |
 | GET | `/shot/<id>` | ShotResult JSON |
 | GET | `/shots` | List |
@@ -45,13 +46,21 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now pulselm.service
 ```
 
-Point iPhone Safari at `http://<pi-ip>:8080` (display only). Enable the sensor with `dtoverlay=ov9281` in `/boot/config.txt` or `/boot/firmware/config.txt` (see [docs/wiring.md](docs/wiring.md)).
+Point the native iOS app (`ios/PulseLM`) or Safari at `http://<pi-ip>:8080` (display only). Enable the sensor with `dtoverlay=ov9281` in `/boot/config.txt` or `/boot/firmware/config.txt` (see [docs/wiring.md](docs/wiring.md)).
+
+## iOS app
+
+Open `ios/PulseLM/PulseLM.xcodeproj` on a Mac. Bundle id `app.pulselm.PulseLM`. The app GETs `/shot/latest`, POSTs `/arm`, and maps `carry_yd_est` + `hla_deg` onto a driving range (`RangeLanding.swift`, same formula as `range_landing.py`). Null HLA lands on the target line. No AVCapture / BLE / radar.
+
+## Workflow
+
+`.grok/workflows/cheap-hardware-launch-monitor.rhai` — survey specialists + two-vote adversarial verify. Smoke-check with `validate_only` and `args.root`.
 
 ## ShotResult (`pulselm.shot.v1`)
 
 `shot_id`, `unix_ts`, `ok`, `error`, `ball_speed_mph`, `vla_deg`, `hla_deg`, `spin_rpm`, `spin_axis_deg`, `club_speed_mph`, `face_deg`, `path_deg`, `carry_yd_est`, `total_yd_est`, `confidence`, `ghost_px`, `pulse_gap_s`.
 
-Missing values are JSON **`null`**, not `0`. `pulse_gap_s` is `0.002`. Week-1 nulls: HLA, spin, spin axis, club speed, face, path.
+Missing values are JSON **`null`**, not `0`. `pulse_gap_s` is `0.002`. Spin, spin axis, club speed, face, and path stay `null` on this hardware. HLA is `null` unless `camera_distance_mm` plus two blob diameters are supplied.
 
 ## Tests
 
