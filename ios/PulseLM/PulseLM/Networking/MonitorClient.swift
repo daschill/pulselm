@@ -174,6 +174,10 @@ final class MonitorClient: ObservableObject {
     }
 
     func fetchLatest() async throws -> ShotResult {
+        if let shot = PhoneHub.shared.shots.last {
+            latest = shot
+            return shot
+        }
         let shot: ShotResult = try await get(path: "/shot/latest", allowHTTPErrorBody: true)
         latest = shot
         lastError = nil
@@ -183,58 +187,66 @@ final class MonitorClient: ObservableObject {
     func arm() async throws -> ShotResult {
         isBusy = true
         defer { isBusy = false }
-        let shot: ShotResult = try await post(path: "/arm")
+        let shot = PhoneHub.shared.demoShot()
         latest = shot
+        shots = PhoneHub.shared.shots
+        play = PhoneHub.shared.play
+        if let hole = play?.hole {
+            holeMap = PhoneHub.shared.syntheticMap(hole: hole)
+        }
         lastError = nil
         return shot
     }
 
     func fetchHealth() async throws -> HealthResponse {
-        let value: HealthResponse = try await get(path: "/api/v1/health")
+        let value = HealthResponse(
+            ok: true,
+            service: R10Bluetooth.shared.connected ? "r10-ble" : "pulselm-phone",
+            demo: !R10Bluetooth.shared.connected,
+            pulse_gap_s: 0.002,
+            schema: "pulselm.shot.v1"
+        )
         health = value
         lastError = nil
         return value
     }
 
     func fetchShots() async throws -> [ShotResult] {
-        let list: ShotsListResponse = try await get(path: "/shots")
-        shots = list.shots
+        shots = PhoneHub.shared.shots
         lastError = nil
-        return list.shots
+        return shots
     }
 
     func fetchPlay() async throws -> PlayRound {
-        let value: PlayRound = try await get(path: "/api/v1/play")
-        play = value
-        return value
+        if let value = PhoneHub.shared.play {
+            play = value
+            return value
+        }
+        play = PlayRound(ok: true, playing: false, course_id: nil, course_name: nil, city: nil, state: nil, par: nil, hole: nil, hole_par: nil, pin_yd: nil, remaining_yd: nil, strokes: nil, thru: nil, to_par: nil, scorecard: nil, holes: nil, attribution: nil, round_complete: false)
+        return play!
     }
 
     func startPlay(courseId: String) async throws -> PlayRound {
-        let value: PlayRound = try await post(
-            path: "/api/v1/play/start",
-            json: ["course_id": courseId, "holes": "18"]
-        )
+        let value = try await PhoneHub.shared.startRound(courseId: courseId)
         play = value
-        if let pin = value.remaining_yd ?? value.pin_yd {
-            _ = try? await fetchPractice(pin: pin)
+        if let hole = value.hole {
+            holeMap = PhoneHub.shared.syntheticMap(hole: hole)
         }
-        if let cid = value.course_id, let hole = value.hole {
-            _ = try? await fetchHoleMap(courseId: cid, hole: hole)
-        }
+        lastError = nil
         return value
     }
 
     func fetchHoleMap(courseId: String, hole: Int) async throws -> CourseHoleMap {
-        let value: CourseHoleMap = try await get(path: "/api/v1/courses/\(courseId)/map?hole=\(hole)")
+        let value = PhoneHub.shared.syntheticMap(hole: hole)
         holeMap = value
         return value
     }
 
     func gimmePlay() async throws -> PlayRound {
-        let value: PlayRound = try await post(path: "/api/v1/play/gimme")
+        let value = PhoneHub.shared.gimme()
         play = value
-        if let cid = value.course_id, let hole = value.hole {
-            _ = try? await fetchHoleMap(courseId: cid, hole: hole)
+        if let hole = value.hole {
+            holeMap = PhoneHub.shared.syntheticMap(hole: hole)
         }
         return value
     }
@@ -246,24 +258,42 @@ final class MonitorClient: ObservableObject {
     ]
 
     func searchCourses(q: String = "") async throws -> [CourseSummary] {
-        let path = q.isEmpty ? "/api/v1/courses" : "/api/v1/courses?q=\(q.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? q)"
-        do {
-            let payload: CourseListPayload = try await get(path: path)
-            let rows = payload.courses.isEmpty ? Self.bundledCourses : payload.courses
-            courseResults = rows
-            lastError = nil
-            return rows
-        } catch {
-            courseResults = Self.bundledCourses
-            lastError = "Not connected to PulseLM at \(baseURLString). Showing featured courses; start the PC server to play."
-            return Self.bundledCourses
-        }
+        let rows = try await PhoneHub.shared.searchCourses(q: q)
+        courseResults = rows
+        lastError = nil
+        return rows
     }
 
     func fetchPractice(pin: Double = 250) async throws -> PracticePayload {
-        let value: PracticePayload = try await get(path: "/api/v1/practice?pin=\(Int(pin))")
+        let shot = latest
+        let smash: Double? = {
+            guard let b = shot?.ball_speed_mph, let c = shot?.club_speed_mph, c > 0 else { return nil }
+            return b / c
+        }()
+        let tiles = PracticeTiles(
+            ball_speed_mph: shot?.ball_speed_mph,
+            vla_deg: shot?.vla_deg,
+            hla_deg: shot?.hla_deg,
+            spin_rpm: shot?.spin_rpm,
+            club_speed_mph: shot?.club_speed_mph,
+            smash: smash,
+            carry_yd_est: shot?.carry_yd_est,
+            total_yd_est: shot?.total_yd_est,
+            apex_yd: nil,
+            hang_time_s: nil,
+            land_angle_deg: nil,
+            dist_to_pin_yd: pin,
+            curve_yd: shot?.hla_deg,
+            along_yd: shot?.carry_yd_est,
+            offline_yd: nil,
+            spin_axis_deg: shot?.spin_axis_deg,
+            back_spin_rpm: shot?.spin_rpm,
+            side_spin_rpm: nil,
+            path_deg: shot?.path_deg,
+            face_deg: shot?.face_deg
+        )
+        let value = PracticePayload(ok: true, pin_yd: pin, clubs: ["Dr", "7i", "PW"], games: ["practice"], tiles: tiles, shot_count: shots.count)
         practice = value
-        lastError = nil
         return value
     }
 
@@ -275,19 +305,16 @@ final class MonitorClient: ObservableObject {
     }
 
     func refresh() async {
-        do {
-            _ = try await fetchHealth()
-            _ = try await fetchLatest()
-            _ = try? await fetchShots()
-            _ = try? await fetchSession()
-            _ = try? await fetchPractice()
-            _ = try? await fetchPlay()
-            if let cid = play?.course_id, let hole = play?.hole, play?.playing == true {
-                _ = try? await fetchHoleMap(courseId: cid, hole: hole)
-            }
-        } catch {
-            lastError = error.localizedDescription
+        _ = try? await fetchHealth()
+        shots = PhoneHub.shared.shots
+        latest = PhoneHub.shared.shots.last
+        play = PhoneHub.shared.play
+        if let hole = play?.hole {
+            holeMap = PhoneHub.shared.syntheticMap(hole: hole)
+        } else if holeMap == nil {
+            holeMap = PhoneHub.shared.syntheticMap(hole: 1)
         }
+        lastError = nil
     }
 
     private func get<T: Decodable>(path: String, allowHTTPErrorBody: Bool = false) async throws -> T {

@@ -17,6 +17,8 @@
 		08A11A000000000000000027 /* ShotHUD.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08A11A000000000000000017 /* ShotHUD.swift */; };
 		08A11A00000000000000002A /* Course3DView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08A11A00000000000000001B /* Course3DView.swift */; };
 		08A11A00000000000000002B /* AppShell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08A11A00000000000000001C /* AppShell.swift */; };
+		08A11A00000000000000002C /* PhoneHub.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08A11A00000000000000001D /* PhoneHub.swift */; };
+		08A11A00000000000000002D /* R10Bluetooth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08A11A00000000000000001E /* R10Bluetooth.swift */; };
 		08A11A000000000000000028 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 08A11A000000000000000019 /* Assets.xcassets */; };
 		08A11A000000000000000029 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 08A11A00000000000000001A /* Preview Assets.xcassets */; };
 /* End PBXBuildFile section */
@@ -33,6 +35,8 @@
 		08A11A000000000000000017 /* ShotHUD.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShotHUD.swift; sourceTree = "<group>"; };
 		08A11A00000000000000001B /* Course3DView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Course3DView.swift; sourceTree = "<group>"; };
 		08A11A00000000000000001C /* AppShell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppShell.swift; sourceTree = "<group>"; };
+		08A11A00000000000000001D /* PhoneHub.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneHub.swift; sourceTree = "<group>"; };
+		08A11A00000000000000001E /* R10Bluetooth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = R10Bluetooth.swift; sourceTree = "<group>"; };
 		08A11A000000000000000018 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		08A11A000000000000000019 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		08A11A00000000000000001A /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
@@ -62,6 +66,8 @@
 			children = (
 				08A11A000000000000000010 /* PulseLMApp.swift */,
 				08A11A00000000000000001C /* AppShell.swift */,
+				08A11A00000000000000001D /* PhoneHub.swift */,
+				08A11A00000000000000001E /* R10Bluetooth.swift */,
 				08A11A000000000000000011 /* ContentView.swift */,
 				08A11A000000000000000032 /* Models */,
 				08A11A000000000000000033 /* Mapping */,
@@ -205,6 +211,8 @@
 				08A11A000000000000000027 /* ShotHUD.swift in Sources */,
 				08A11A00000000000000002A /* Course3DView.swift in Sources */,
 				08A11A00000000000000002B /* AppShell.swift in Sources */,
+				08A11A00000000000000002C /* PhoneHub.swift in Sources */,
+				08A11A00000000000000002D /* R10Bluetooth.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

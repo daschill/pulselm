@@ -27,6 +27,8 @@ def test_ios_sources_bind_shotresult_fields():
     required = [
         IOS_ROOT / "PulseLM" / "PulseLMApp.swift",
         IOS_ROOT / "PulseLM" / "AppShell.swift",
+        IOS_ROOT / "PulseLM" / "PhoneHub.swift",
+        IOS_ROOT / "PulseLM" / "R10Bluetooth.swift",
         IOS_ROOT / "PulseLM" / "ContentView.swift",
         IOS_ROOT / "PulseLM" / "Models" / "ShotResult.swift",
         IOS_ROOT / "PulseLM" / "Mapping" / "ShotMapping.swift",
@@ -58,7 +60,7 @@ def test_ios_sources_bind_shotresult_fields():
     assert "cos(" in landing_src and "sin(" in landing_src
     assert "hla == nil" in landing_src or "hla == nil" in blob
     assert "AVCapture" not in blob
-    assert "CBCentralManager" not in blob
+    assert "CBCentralManager" in blob  # R10 pairs to this iPhone; no PC required
     range_src = (IOS_ROOT / "PulseLM" / "Views" / "RangeView.swift").read_text(
         encoding="utf-8"
     )

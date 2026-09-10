@@ -167,62 +167,41 @@ struct ShotsTableView: View {
 
 struct ConnectHubView: View {
     @EnvironmentObject private var client: MonitorClient
-    @State private var testing = false
+    @ObservedObject private var r10 = R10Bluetooth.shared
 
     var body: some View {
         NavigationStack {
             Form {
                 Section {
-                    HStack {
-                        Circle()
-                            .fill(client.health?.ok == true ? Color.green : Color.orange)
-                            .frame(width: 10, height: 10)
-                        Text(client.health?.ok == true ? "Connected" : "Not connected")
-                            .font(.headline)
-                        Spacer()
-                        Text(client.health?.demo == true ? "DEMO" : (client.health?.ok == true ? "LIVE" : "OFFLINE"))
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                Section("Monitor (this PC)") {
-                    Text("Garmin Golf puts Devices under Profile. PulseLM uses the PC as the hub — the iPhone is the display, like GSPro on a TV.")
-                        .font(.footnote)
-                    TextField("http://192.168.0.139:18080", text: $client.baseURLString)
-                        .textInputAutocapitalization(.never)
-                        .keyboardType(.URL)
-                        .autocorrectionDisabled()
-                    Button {
-                        testing = true
-                        Task {
-                            await client.refresh()
-                            testing = false
-                        }
-                    } label: {
-                        HStack {
-                            Text("Test connection")
-                            if testing { Spacer(); ProgressView() }
-                        }
-                    }
-                    if let err = client.lastError {
-                        Text(err).font(.footnote).foregroundStyle(.orange)
-                    }
-                }
-                Section("Start the PC") {
-                    Text("python pulselm.py --demo --r10 --host 0.0.0.0 --port 18080")
-                        .font(.system(.footnote, design: .monospaced))
-                        .textSelection(.enabled)
+                    Text("This iPhone is the app. No PC.")
+                        .font(.headline)
+                    Text(r10.connected ? "R10 linked" : "Practice with ARM, or pair your R10")
+                        .foregroundStyle(.secondary)
                 }
                 Section("Garmin Approach R10") {
-                    Text("1. Close Garmin Golf on this iPhone (it steals Bluetooth).\n2. Pair Approach R10 in Windows Bluetooth (hold R10 until solid blue).\n3. Point gsp-r10-adapter at this PC, port 921.\n4. Hit. Shots appear on Range and Shots.")
+                    Text(r10.status)
+                    Button(r10.connected ? "Disconnect R10" : "Scan & pair R10") {
+                        if r10.connected { r10.stop() } else { r10.scan() }
+                    }
+                    Text("Turn the R10 on (LED solid blue). Close Garmin Golf so this app can own Bluetooth. Place the R10 6–8 ft behind the ball.")
                         .font(.footnote)
                 }
-                Section("Pi dual-strobe") {
-                    Text("Same URL, omit --demo on the Pi at port 8080. ARM on the Range tab fires a capture.")
+                Section("Play without a monitor") {
+                    Text("Range → ARM records a practice shot on this phone. Play → pick Bethpage (or search) → ARM each swing. 18 holes, scorecard, 3D hole.")
                         .font(.footnote)
                 }
             }
             .navigationTitle("Connect")
+            .onAppear {
+                r10.onShot = { shot in
+                    Task { @MainActor in
+                        _ = PhoneHub.shared.ingest(shot)
+                        client.latest = shot
+                        client.shots = PhoneHub.shared.shots
+                        client.play = PhoneHub.shared.play
+                    }
+                }
+            }
         }
     }
 }

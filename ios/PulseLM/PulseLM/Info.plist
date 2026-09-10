@@ -46,8 +46,12 @@
 			</dict>
 		</dict>
 	</dict>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>PulseLM pairs with your Garmin Approach R10 over Bluetooth so shots appear in the app. No PC is required.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>PulseLM pairs with your Garmin Approach R10 over Bluetooth so shots appear in the app.</string>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>PulseLM connects to your Raspberry Pi launch monitor on the local network to display shot data.</string>
+	<string>Optional: PulseLM can also reach a Pi on your LAN. The phone works on its own.</string>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UISupportedInterfaceOrientations</key>
