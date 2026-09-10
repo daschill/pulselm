@@ -65,4 +65,5 @@ def test_ios_sources_bind_shotresult_fields():
     assert "ShotTracer" in range_src
     assert "session" in range_src
     assert "pinYards" in range_src
-    assert "100.0, 150.0, 200.0, 250.0" in range_src
+    assert "150.0, 200.0, 250.0, 300.0, 400.0, 500.0" in range_src
+    assert "maxAlongYd: Double = 500" in range_src

@@ -4,7 +4,7 @@ import SwiftUI
 struct RangeView: View {
     var shot: ShotResult?
     var session: [ShotResult] = []
-    @State private var pinYards: Double = 150
+    @State private var pinYards: Double = 250
 
     private var landing: RangeLanding {
         RangeLanding.from(carry: shot?.carry_yd_est, hla: shot?.hla_deg)
@@ -33,15 +33,15 @@ struct RangeView: View {
                 .font(.system(size: 10, weight: .bold, design: .rounded))
                 .tracking(1.2)
                 .foregroundStyle(.white.opacity(0.55))
-            ForEach([100.0, 150.0, 200.0, 250.0], id: \.self) { yd in
+            ForEach([150.0, 200.0, 250.0, 300.0, 400.0, 500.0], id: \.self) { yd in
                 Button {
                     pinYards = yd
                 } label: {
                     Text("\(Int(yd))")
                         .font(.system(size: 12, weight: .bold, design: .rounded))
                         .foregroundStyle(pinYards == yd ? Color.black : .white)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 5)
                         .background(
                             Capsule().fill(pinYards == yd ? Color(red: 0.24, green: 1.0, blue: 0.60) : Color.white.opacity(0.08))
                         )
@@ -163,9 +163,9 @@ struct RangeView: View {
 }
 
 enum RangeLayout {
-    static let maxAlongYd: Double = 320
-    static let maxOfflineYd: Double = 50
-    static let markers: [Double] = [50, 100, 150, 200, 250, 300]
+    static let maxAlongYd: Double = 500
+    static let maxOfflineYd: Double = 55
+    static let markers: [Double] = [50, 100, 150, 200, 250, 300, 350, 400, 450, 500]
     static let topInset: CGFloat = 36
     static let bottomInset: CGFloat = 28
 
@@ -273,8 +273,8 @@ private struct RangeScenery: View {
         var rough = Path()
         let rL = RangeLayout.point(along: 0, offline: -48, size: size)
         let rR = RangeLayout.point(along: 0, offline: 48, size: size)
-        let rFarL = RangeLayout.point(along: 320, offline: -48, size: size)
-        let rFarR = RangeLayout.point(along: 320, offline: 48, size: size)
+        let rFarL = RangeLayout.point(along: 500, offline: -48, size: size)
+        let rFarR = RangeLayout.point(along: 500, offline: 48, size: size)
         rough.move(to: CGPoint(x: 0, y: size.height))
         rough.addLine(to: CGPoint(x: size.width, y: size.height))
         rough.addLine(to: rFarR)
@@ -284,9 +284,9 @@ private struct RangeScenery: View {
 
         var fairway = Path()
         let teeHalf = RangeLayout.fairwayHalfWidth(along: 0, size: size)
-        let farHalf = RangeLayout.fairwayHalfWidth(along: 320, size: size)
+        let farHalf = RangeLayout.fairwayHalfWidth(along: 500, size: size)
         let bottom = RangeLayout.point(along: 0, offline: 0, size: size).y
-        let top = RangeLayout.point(along: 320, offline: 0, size: size).y
+        let top = RangeLayout.point(along: 500, offline: 0, size: size).y
         fairway.move(to: CGPoint(x: cx - teeHalf, y: bottom))
         fairway.addLine(to: CGPoint(x: cx + teeHalf, y: bottom))
         fairway.addLine(to: CGPoint(x: cx + farHalf, y: top))
@@ -306,9 +306,10 @@ private struct RangeScenery: View {
     private func drawBunkers(context: inout GraphicsContext, size: CGSize) {
         let spots: [(Double, Double, CGFloat, CGFloat)] = [
             (118, -18, 22, 8),
-            (162, 16, 18, 7),
-            (208, -12, 16, 6),
-            (248, 20, 14, 5),
+            (185, 16, 18, 7),
+            (260, -12, 16, 6),
+            (340, 20, 14, 5),
+            (420, -14, 12, 4),
         ]
         for (along, off, w, h) in spots {
             let p = RangeLayout.point(along: along, offline: off, size: size)
@@ -319,7 +320,7 @@ private struct RangeScenery: View {
     }
 
     private func drawGrid(context: inout GraphicsContext, size: CGSize) {
-        for yd in stride(from: 25.0, through: 300.0, by: 25.0) {
+        for yd in stride(from: 25.0, through: 500.0, by: 25.0) {
             let y = RangeLayout.point(along: yd, offline: 0, size: size).y
             let half = RangeLayout.fairwayHalfWidth(along: yd, size: size)
             var tick = Path()
@@ -331,7 +332,7 @@ private struct RangeScenery: View {
 
     private func drawTargetLine(context: inout GraphicsContext, size: CGSize) {
         let tee = RangeLayout.point(along: 0, offline: 0, size: size)
-        let far = RangeLayout.point(along: 320, offline: 0, size: size)
+        let far = RangeLayout.point(along: 500, offline: 0, size: size)
         var line = Path()
         line.move(to: tee)
         line.addLine(to: far)
@@ -350,7 +351,7 @@ private struct RangeScenery: View {
     }
 
     private func drawFlags(context: inout GraphicsContext, size: CGSize) {
-        for yd in [100.0, 150.0, 200.0, 250.0] {
+        for yd in [150.0, 200.0, 250.0, 300.0, 400.0, 500.0] {
             let p = RangeLayout.point(along: yd, offline: 0, size: size)
             let h: CGFloat = yd == pinYards ? 22 : 14
             var pole = Path()
@@ -372,7 +373,8 @@ private struct RangeScenery: View {
 
     private func drawTrees(context: inout GraphicsContext, size: CGSize) {
         let trees: [(Double, Double, CGFloat)] = [
-            (40, -42, 18), (90, 44, 16), (140, -46, 20), (190, 48, 14), (240, -44, 16), (280, 42, 12),
+            (40, -42, 18), (90, 44, 16), (140, -46, 20), (190, 48, 14),
+            (250, -44, 16), (320, 42, 12), (390, -46, 14), (460, 40, 11),
         ]
         for (along, off, h) in trees {
             let p = RangeLayout.point(along: along, offline: off, size: size)

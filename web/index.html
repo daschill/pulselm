@@ -172,29 +172,20 @@
         <polygon class="rough" points="8,360 232,360 210,18 30,18"></polygon>
         <polygon class="fairway" points="78,360 162,360 138,18 102,18"></polygon>
         <line class="target" x1="120" y1="360" x2="120" y2="18"></line>
-        <line class="tick" x1="40" y1="303" x2="200" y2="303"></line>
-        <text class="tick-label" x="12" y="306">50</text>
-        <line class="tick" x1="42" y1="246" x2="198" y2="246"></line>
-        <text class="tick-label" x="8" y="249">100</text>
-        <line class="tick" x1="44" y1="189" x2="196" y2="189"></line>
-        <text class="tick-label" x="8" y="192">150</text>
-        <line class="tick" x1="46" y1="132" x2="194" y2="132"></line>
-        <text class="tick-label" x="8" y="135">200</text>
-        <line class="tick" x1="48" y1="75" x2="192" y2="75"></line>
-        <text class="tick-label" x="8" y="78">250</text>
-        <ellipse class="bunker" cx="88" cy="200" rx="16" ry="6" fill="#d4b56a"></ellipse>
-        <ellipse class="bunker" cx="155" cy="145" rx="14" ry="5" fill="#d4b56a"></ellipse>
+        <g id="yard-ticks"></g>
+        <ellipse class="bunker" cx="88" cy="255" rx="16" ry="6" fill="#d4b56a"></ellipse>
+        <ellipse class="bunker" cx="155" cy="190" rx="14" ry="5" fill="#d4b56a"></ellipse>
         <g class="flag" transform="translate(120,189)">
           <line x1="0" y1="0" x2="0" y2="-18" stroke="#fff" stroke-width="1.2"></line>
           <polygon points="0,-18 12,-13 0,-8" fill="#e23"></polygon>
         </g>
-        <g class="flag" transform="translate(120,132)">
+        <g class="flag" transform="translate(120,86)">
           <line x1="0" y1="0" x2="0" y2="-16" stroke="#fff" stroke-width="1.2"></line>
           <polygon points="0,-16 11,-12 0,-8" fill="#fff"></polygon>
         </g>
-        <g class="flag" transform="translate(120,75)">
-          <line x1="0" y1="0" x2="0" y2="-16" stroke="#fff" stroke-width="1.2"></line>
-          <polygon points="0,-16 11,-12 0,-8" fill="#fff"></polygon>
+        <g class="flag" transform="translate(120,18)">
+          <line x1="0" y1="0" x2="0" y2="-14" stroke="#fff" stroke-width="1.2"></line>
+          <polygon points="0,-14 10,-10 0,-6" fill="#fff"></polygon>
         </g>
         <path id="tracer" d="" fill="none" stroke="#3dff9a" stroke-width="2" stroke-linecap="round" opacity="0.85"></path>
         <rect class="tee" x="108" y="352" width="24" height="8" rx="2"></rect>
@@ -210,12 +201,32 @@
   </main>
   <script>
     const DEMO = {{DEMO}};
-    const RANGE_MAX_YD = 300;
+    const RANGE_MAX_YD = 500;
     const RANGE_HALF_YD = 50;
     const TEE_Y = 360;
     const FAR_Y = 18;
     const CENTER_X = 120;
     const OFFLINE_PX = 90;
+    (function drawYardTicks() {
+      const g = document.getElementById("yard-ticks");
+      if (!g) return;
+      for (const yd of [50, 100, 150, 200, 250, 300, 350, 400, 450, 500]) {
+        const y = TEE_Y - (yd / RANGE_MAX_YD) * (TEE_Y - FAR_Y);
+        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        line.setAttribute("class", "tick");
+        line.setAttribute("x1", "40");
+        line.setAttribute("y1", String(y));
+        line.setAttribute("x2", "200");
+        line.setAttribute("y2", String(y));
+        g.appendChild(line);
+        const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        t.setAttribute("class", "tick-label");
+        t.setAttribute("x", "8");
+        t.setAttribute("y", String(y + 3));
+        t.textContent = String(yd);
+        g.appendChild(t);
+      }
+    })();
     function fmt(n, digits) {
       if (n === null || n === undefined || n === "") return "—";
       const x = Number(n);
