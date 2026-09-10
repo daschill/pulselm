@@ -30,7 +30,9 @@ def _fake_fetch(url: str) -> dict:
 
 def test_round_advances_and_holes_out(tmp_path: Path):
     ten = start_round("course-1", tmp_path, fetch=_fake_fetch, max_holes=10)
-    assert len(ten["holes"]) == 2
+    assert len(ten["holes"]) == 10
+    eighteen = start_round("course-1", tmp_path, fetch=_fake_fetch, max_holes=18)
+    assert len(eighteen["holes"]) == 18
     doc = start_round("course-1", tmp_path, fetch=_fake_fetch)
     assert doc["current"]["pin_yd"] == 360
     view = public_view(doc)

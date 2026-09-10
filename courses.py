@@ -70,6 +70,11 @@ def pin_yards_from_hole(hole: dict[str, Any]) -> Optional[int]:
     return None
 
 
+def default_pin_yd(par: Optional[int], hole: int) -> int:
+    base = {3: 165, 4: 385, 5: 520}.get(int(par or 4), 385)
+    return int(base + ((int(hole) % 5) - 2) * 12)
+
+
 def holes_as_targets(payload: dict[str, Any]) -> list[dict[str, Any]]:
     holes = payload.get("holes") or payload.get("scorecard") or []
     out = []
@@ -79,9 +84,40 @@ def holes_as_targets(payload: dict[str, Any]) -> list[dict[str, Any]]:
         pin = pin_yards_from_hole(h)
         if num is None:
             continue
-        out.append({"hole": int(num), "par": par, "pin_yd": pin})
+        n = int(num)
+        p = int(par) if par is not None else 4
+        if pin is None:
+            pin = default_pin_yd(p, n)
+        out.append({"hole": n, "par": p, "pin_yd": int(pin)})
     out.sort(key=lambda r: r["hole"])
-    return out
+    return ensure_eighteen(out)
+
+
+def ensure_eighteen(holes: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """18 playable holes: pad a 9 with a second nine, or fill missing numbers."""
+    if not holes:
+        return [
+            {"hole": i, "par": 4 if i not in (3, 8, 12, 16) else 3 if i in (3, 8, 12) else 5, "pin_yd": default_pin_yd(4, i)}
+            for i in range(1, 19)
+        ]
+    if len(holes) >= 18:
+        return holes[:18]
+    if 7 <= len(holes) <= 9:
+        extra = []
+        for h in holes:
+            extra.append(
+                {
+                    "hole": int(h["hole"]) + 9,
+                    "par": h.get("par"),
+                    "pin_yd": h.get("pin_yd"),
+                }
+            )
+        return (holes + extra)[:18]
+    while len(holes) < 18:
+        n = len(holes) + 1
+        par = 4 if n not in (3, 8, 12, 16) else 3 if n in (3, 8, 12) else 5
+        holes.append({"hole": n, "par": par, "pin_yd": default_pin_yd(par, n)})
+    return holes[:18]
 
 
 def course_with_holes(course_id: str, *, fetch: Optional[FetchFn] = None) -> dict[str, Any]:

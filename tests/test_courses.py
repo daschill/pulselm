@@ -34,7 +34,8 @@ def test_hole_pin_prefers_blue_tees():
     hole = {"number": 7, "par": 3, "yardages": {"red": 90, "white": 110, "blue": 120}}
     assert pin_yards_from_hole(hole) == 120
     targets = holes_as_targets({"holes": [hole]})
-    assert targets == [{"hole": 7, "par": 3, "pin_yd": 120}]
+    assert targets[0] == {"hole": 7, "par": 3, "pin_yd": 120}
+    assert len(targets) == 18
 
 
 def test_course_with_holes_uses_scorecard_fallback():
@@ -54,5 +55,6 @@ def test_course_with_holes_uses_scorecard_fallback():
 
     out = course_with_holes("xyz", fetch=fetch)
     assert out["name"] == "Demo Muni"
-    assert [h["hole"] for h in out["holes"]] == [1, 2]
+    assert [h["hole"] for h in out["holes"][:2]] == [1, 2]
     assert out["holes"][1]["par"] == 3
+    assert len(out["holes"]) == 18

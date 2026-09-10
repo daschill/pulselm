@@ -65,7 +65,15 @@ struct PlayRound: Codable, Equatable, Sendable {
     var thru: Int?
     var to_par: Int?
     var scorecard: [PlayHoleScore]?
+    var holes: [PlayHoleDef]?
     var attribution: String?
+    var round_complete: Bool?
+}
+
+struct PlayHoleDef: Codable, Equatable, Sendable {
+    var hole: Int
+    var par: Int?
+    var pin_yd: Int?
 }
 
 struct CourseSummary: Codable, Equatable, Sendable, Identifiable {
@@ -179,7 +187,7 @@ final class MonitorClient: ObservableObject {
     func startPlay(courseId: String) async throws -> PlayRound {
         let value: PlayRound = try await post(
             path: "/api/v1/play/start",
-            json: ["course_id": courseId, "holes": "10"]
+            json: ["course_id": courseId, "holes": "18"]
         )
         play = value
         if let pin = value.remaining_yd ?? value.pin_yd {

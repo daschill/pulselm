@@ -4,6 +4,7 @@ struct ContentView: View {
     @EnvironmentObject private var client: MonitorClient
     @State private var showHostEditor = false
     @State private var showCourses = false
+    @State private var showScorecard = false
 
     var body: some View {
         NavigationStack {
@@ -50,6 +51,9 @@ struct ContentView: View {
             .sheet(isPresented: $showCourses) {
                 courseSheet
             }
+            .sheet(isPresented: $showScorecard) {
+                scorecardSheet
+            }
             .task {
                 await client.refresh()
             }
@@ -70,6 +74,10 @@ struct ContentView: View {
                         .font(.system(size: 14, weight: .bold, design: .rounded))
                 }
                 Spacer()
+                if client.play?.playing == true || client.play?.round_complete == true {
+                    Button("Card") { showScorecard = true }
+                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                }
                 if client.play?.playing == true {
                     Button("Gimme") {
                         Task {
@@ -98,6 +106,51 @@ struct ContentView: View {
         let st = p?.strokes.map { "\($0) strokes" } ?? ""
         let tp = p?.to_par.map { $0 == 0 ? "E" : String(format: "%+d", $0) } ?? ""
         return [hole, par, rem, st, tp].filter { !$0.isEmpty }.joined(separator: " · ")
+    }
+
+    private var scorecardSheet: some View {
+        let card = client.play?.scorecard ?? []
+        let holes = client.play?.holes ?? []
+        return NavigationStack {
+            List {
+                Section(client.play?.course_name ?? "Scorecard") {
+                    ForEach(1...18, id: \.self) { n in
+                        let scored = card.first { $0.hole == n }
+                        let def = holes.first { $0.hole == n }
+                        HStack {
+                            Text("\(n)")
+                                .frame(width: 28)
+                            Text("par \(scored?.par ?? def?.par ?? 4)")
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            if let s = scored {
+                                Text("\(s.strokes)")
+                                    .bold()
+                                Text(s.to_par == 0 ? "E" : String(format: "%+d", s.to_par))
+                                    .foregroundStyle(s.to_par < 0 ? Color.green : .secondary)
+                            } else if client.play?.hole == n {
+                                Text("playing")
+                                    .foregroundStyle(Color(red: 0.24, green: 1.0, blue: 0.60))
+                            } else {
+                                Text(def?.pin_yd.map { "\($0) yd" } ?? "—")
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                }
+                if let tp = client.play?.to_par, let thru = client.play?.thru {
+                    Section {
+                        Text("Thru \(thru) · \(tp == 0 ? "E" : String(format: "%+d", tp))")
+                    }
+                }
+            }
+            .navigationTitle("18 holes")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") { showScorecard = false }
+                }
+            }
+        }
     }
 
     private var courseSheet: some View {

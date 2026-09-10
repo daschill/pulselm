@@ -12,7 +12,7 @@ Free, no key for reads. ~16,800 US courses with scorecards and tee yardages.
 
 What we get: **name, location, par, hole yardages** (blue/white tees). PulseLM **Play a course** starts an 18-hole round: each LM shot reduces remaining yards; inside 3 yd is a gimme putt. Not a photoreal 3D replica.
 
-`POST /api/v1/play/start {"course_id":"..."}` then hit balls (Arm or R10). `GET /api/v1/play` is the scorecard.
+`POST /api/v1/play/start {"course_id":"...","holes":18}` then hit balls (Arm or R10). Full 18-hole scorecard: `GET /api/v1/play`. 9-hole courses play the nine twice. Missing tee yardages get a par-based default so every hole is playable.
 
 Featured in the app: Bethpage Black, Bethpage Red, Pebble Beach (scorecard facts only).
 

@@ -184,5 +184,7 @@ def public_view(doc: Optional[dict[str, Any]]) -> dict[str, Any]:
         "to_par": doc.get("to_par"),
         "max_holes": doc.get("max_holes") or len(doc.get("holes") or []),
         "scorecard": doc.get("scorecard") or [],
+        "holes": doc.get("holes") or [],
         "gimme_yd": GIMME_YD,
+        "round_complete": not bool(doc.get("playing")),
     }
