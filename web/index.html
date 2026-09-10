@@ -182,7 +182,23 @@
         <text class="tick-label" x="8" y="135">200</text>
         <line class="tick" x1="48" y1="75" x2="192" y2="75"></line>
         <text class="tick-label" x="8" y="78">250</text>
+        <ellipse class="bunker" cx="88" cy="200" rx="16" ry="6" fill="#d4b56a"></ellipse>
+        <ellipse class="bunker" cx="155" cy="145" rx="14" ry="5" fill="#d4b56a"></ellipse>
+        <g class="flag" transform="translate(120,189)">
+          <line x1="0" y1="0" x2="0" y2="-18" stroke="#fff" stroke-width="1.2"></line>
+          <polygon points="0,-18 12,-13 0,-8" fill="#e23"></polygon>
+        </g>
+        <g class="flag" transform="translate(120,132)">
+          <line x1="0" y1="0" x2="0" y2="-16" stroke="#fff" stroke-width="1.2"></line>
+          <polygon points="0,-16 11,-12 0,-8" fill="#fff"></polygon>
+        </g>
+        <g class="flag" transform="translate(120,75)">
+          <line x1="0" y1="0" x2="0" y2="-16" stroke="#fff" stroke-width="1.2"></line>
+          <polygon points="0,-16 11,-12 0,-8" fill="#fff"></polygon>
+        </g>
+        <path id="tracer" d="" fill="none" stroke="#3dff9a" stroke-width="2" stroke-linecap="round" opacity="0.85"></path>
         <rect class="tee" x="108" y="352" width="24" height="8" rx="2"></rect>
+        <g id="session-dots"></g>
         <g id="landing" data-along="{{ALONG_YD}}" data-offline="{{OFFLINE_YD}}" visibility="hidden">
           <ellipse class="ball-shadow" cx="0" cy="4" rx="7" ry="3"></ellipse>
           <circle class="ball" r="6"></circle>
@@ -242,6 +258,12 @@
       const x = CENTER_X + (o / RANGE_HALF_YD) * OFFLINE_PX;
       g.setAttribute("transform", "translate(" + x + "," + y + ")");
       g.setAttribute("visibility", "visible");
+      const tracer = document.getElementById("tracer");
+      if (tracer) {
+        const cx = (CENTER_X + x) / 2;
+        const cy = Math.min(TEE_Y, y) - 48;
+        tracer.setAttribute("d", "M " + CENTER_X + " " + TEE_Y + " Q " + cx + " " + cy + " " + x + " " + y);
+      }
     }
     function render(shot) {
       if (!shot) return;

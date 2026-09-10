@@ -62,3 +62,7 @@ def test_ios_sources_bind_shotresult_fields():
     )
     assert "RangeLanding.from" in range_src
     assert "yd off" in range_src
+    assert "ShotTracer" in range_src
+    assert "session" in range_src
+    assert "pinYards" in range_src
+    assert "100.0, 150.0, 200.0, 250.0" in range_src

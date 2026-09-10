@@ -7,15 +7,15 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 16) {
+                VStack(spacing: 12) {
                     header
                     ShotHUD(shot: client.latest)
+                    RangeView(shot: client.latest, session: client.shots)
                     sessionStrip
-                    RangeView(shot: client.latest)
                     armButton
                     statusLine
                 }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 12)
                 .padding(.bottom, 28)
             }
             .background(Color(red: 0.027, green: 0.035, blue: 0.051).ignoresSafeArea())
@@ -176,6 +176,7 @@ struct ContentView: View {
         do {
             _ = try await client.arm()
             _ = try? await client.fetchShots()
+            _ = try? await client.fetchSession()
         } catch {
             client.lastError = error.localizedDescription
         }
