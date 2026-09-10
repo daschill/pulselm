@@ -108,6 +108,24 @@ def create_app(
         summary["schema"] = store.SCHEMA
         return jsonify(summary)
 
+    @app.get("/api/v1/courses")
+    def courses_search() -> Any:
+        import courses as courses_mod
+
+        q = (request.args.get("q") or "").strip()
+        if not q:
+            return jsonify(courses_mod.featured())
+        return jsonify(courses_mod.search_courses(q, limit=int(request.args.get("limit") or 15)))
+
+    @app.get("/api/v1/courses/<course_id>")
+    def course_detail(course_id: str) -> Any:
+        import courses as courses_mod
+
+        try:
+            return jsonify(courses_mod.course_with_holes(course_id))
+        except Exception as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 502
+
     @app.get("/api/v1/practice")
     def practice_view() -> Any:
         import range_metrics

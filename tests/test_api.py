@@ -125,6 +125,25 @@ def test_r10_openconnect_http(client):
     assert latest["shot_id"] == shot["shot_id"]
 
 
+def test_courses_search_uses_catalog(client, monkeypatch):
+    import courses as courses_mod
+
+    monkeypatch.setattr(
+        courses_mod,
+        "search_courses",
+        lambda q, limit=15: {
+            "ok": True,
+            "query": q,
+            "courses": [{"id": "abc", "name": "Bethpage Black", "par": 71}],
+            "license": "ODbL-1.0",
+        },
+    )
+    r = client.get("/api/v1/courses?q=bethpage")
+    assert r.status_code == 200
+    body = r.get_json()
+    assert body["courses"][0]["name"] == "Bethpage Black"
+
+
 def test_practice_tiles_and_games(client):
     r = client.get("/api/v1/practice?pin=250")
     assert r.status_code == 200
