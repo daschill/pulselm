@@ -61,6 +61,12 @@ def test_demo_index_shows_speed(client):
     assert speed in html
     assert "Ball speed" in html
     assert "PulseLM" in html
+    assert 'id="hla"' in html
+    assert 'id="spin"' in html
+    assert 'id="club"' in html
+    assert fixture["hla_deg"] is None
+    assert fixture["spin_rpm"] is None
+    assert ">HLA<" in html or "HLA</span>" in html
 
 
 def test_demo_arm_calibrate_shots(client):
@@ -130,6 +136,15 @@ def test_calibrate_known_length_and_golf_ball(client):
     ball = client.post("/calibrate", json={"diameter_px": 42.67 / 1.8})
     assert ball.status_code == 200
     assert ball.get_json()["ok"] is True
+    dist = client.post(
+        "/calibrate", json={"mm_per_px": 1.8, "camera_distance_mm": 3000}
+    )
+    assert dist.status_code == 200
+    cal = dist.get_json()["calibration"]
+    assert cal["mm_per_px"] == pytest.approx(1.8)
+    assert cal["camera_distance_mm"] == pytest.approx(3000.0)
+    keep = client.post("/calibrate", json={"mm_per_px": 1.9})
+    assert keep.get_json()["calibration"]["camera_distance_mm"] == pytest.approx(3000.0)
     bad = client.post("/calibrate", json={"mm_per_px": 0})
     assert bad.status_code == 400
     assert bad.get_json()["ok"] is False

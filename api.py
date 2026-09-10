@@ -147,6 +147,7 @@ def create_app(
     @app.post("/calibrate")
     def do_calibrate() -> Any:
         body = request.get_json(silent=True) or {}
+        existing = calibrate.load_calibration(app.config["PULSELM_CAL"])
         if "mm_per_px" in body:
             mm = float(body["mm_per_px"])
             extra = {"method": "direct"}
@@ -163,8 +164,16 @@ def create_app(
             mm = calibrate.mm_per_px_from_golf_ball(float(body["diameter_px"]))
             extra = {"method": "golf_ball", "diameter_px": float(body["diameter_px"])}
         else:
-            mm = calibrate.current_mm_per_px(app.config["PULSELM_CAL"])
+            mm = float(existing.get("mm_per_px") or calibrate.current_mm_per_px(
+                app.config["PULSELM_CAL"]
+            ))
             extra = {"method": "unchanged"}
+        if "camera_distance_mm" in body:
+            raw_dist = body["camera_distance_mm"]
+            if raw_dist is not None:
+                extra["camera_distance_mm"] = float(raw_dist)
+        elif existing.get("camera_distance_mm") is not None:
+            extra["camera_distance_mm"] = existing["camera_distance_mm"]
         try:
             saved = calibrate.save_calibration(mm, extra, path=app.config["PULSELM_CAL"])
         except ValueError as exc:
@@ -175,17 +184,23 @@ def create_app(
     def index() -> Any:
         html = (WEB_DIR / "index.html").read_text(encoding="utf-8")
         latest = store.latest_result(shots_root())
-        speed = ""
-        vla = ""
-        carry = ""
+        speed = "—"
+        vla = "—"
+        carry = "—"
         sid = ""
-        along = ""
-        offline = "0"
-        if latest and latest.get("ball_speed_mph") is not None:
+        along = "—"
+        offline = "—"
+        hla = "—"
+        spin = "—"
+        club = "—"
+        if latest:
             hud = shot_ui.hud_from_shot(latest)
             speed = hud["speed_string"]
             vla = hud["vla_string"]
             carry = hud["carry_string"]
+            hla = hud["hla_string"]
+            spin = hud["spin_string"]
+            club = hud["club_string"]
             sid = latest.get("shot_id") or ""
             land = hud["landing"]
             if land.get("along_yd") is not None:
@@ -196,9 +211,12 @@ def create_app(
             html.replace("{{BALL_SPEED_MPH}}", speed or "—")
             .replace("{{VLA_DEG}}", vla or "—")
             .replace("{{CARRY_YD}}", carry or "—")
+            .replace("{{HLA_DEG}}", hla or "—")
+            .replace("{{SPIN_RPM}}", spin or "—")
+            .replace("{{CLUB_SPEED}}", club or "—")
             .replace("{{SHOT_ID}}", sid)
             .replace("{{ALONG_YD}}", along or "—")
-            .replace("{{OFFLINE_YD}}", offline)
+            .replace("{{OFFLINE_YD}}", offline or "—")
             .replace("{{DEMO}}", "true" if app.config["PULSELM_DEMO"] else "false")
         )
         return Response(html, mimetype="text/html")
@@ -215,8 +233,14 @@ def _live_capture(shots_root: Path, cal_path: Optional[Path] = None) -> dict[str
         from service.pulse import capture_dual_strobe_frame
 
         mm = calibrate.current_mm_per_px(cal_path)
+        camera_distance_mm = calibrate.current_camera_distance_mm(cal_path)
         frame = capture_dual_strobe_frame()
-        analyzed = analyze_frame(frame, mm_per_px=mm, pulse_gap_s=PULSE_GAP_S)
+        analyzed = analyze_frame(
+            frame,
+            mm_per_px=mm,
+            pulse_gap_s=PULSE_GAP_S,
+            camera_distance_mm=camera_distance_mm,
+        )
     except Exception as exc:
         return store.build_shot_result(
             shot_id=sid,
@@ -246,6 +270,7 @@ def _live_capture(shots_root: Path, cal_path: Optional[Path] = None) -> dict[str
         meta={
             "demo": False,
             "mm_per_px": mm,
+            "camera_distance_mm": camera_distance_mm,
             "dot1": analyzed["dot1"],
             "dot2": analyzed["dot2"],
             "strobe_pin": STROBE_PIN,

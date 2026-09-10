@@ -154,6 +154,11 @@
       <div class="stat"><span class="label">Carry</span><b id="carry">{{CARRY_YD}}</b></div>
       <div class="stat"><span class="label">Shot</span><b id="shot-id">{{SHOT_ID}}</b></div>
     </section>
+    <section class="grid">
+      <div class="stat"><span class="label">HLA</span><b id="hla">{{HLA_DEG}}</b></div>
+      <div class="stat"><span class="label">Spin</span><b id="spin">{{SPIN_RPM}}</b></div>
+      <div class="stat"><span class="label">Club</span><b id="club">{{CLUB_SPEED}}</b></div>
+    </section>
     <button id="arm" type="button">Arm</button>
     <section class="range" aria-label="Driving range">
       <div class="label">Range</div>
@@ -196,6 +201,10 @@
       if (!Number.isFinite(x)) return "—";
       return x.toFixed(digits);
     }
+    function setText(id, value) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = value;
+    }
     function landingFromShot(shot) {
       const carry = shot && shot.carry_yd_est;
       if (carry === null || carry === undefined || carry === "") {
@@ -232,10 +241,13 @@
     function render(shot) {
       if (!shot) return;
       const speed = fmt(shot.ball_speed_mph, 2);
-      document.getElementById("ball-speed").textContent = speed;
-      document.getElementById("vla").textContent = fmt(shot.vla_deg, 1);
-      document.getElementById("carry").textContent = fmt(shot.carry_yd_est, 0);
-      document.getElementById("shot-id").textContent = shot.shot_id || "—";
+      setText("ball-speed", speed);
+      setText("vla", fmt(shot.vla_deg, 1));
+      setText("carry", fmt(shot.carry_yd_est, 0));
+      setText("hla", fmt(shot.hla_deg, 1));
+      setText("spin", fmt(shot.spin_rpm, 0));
+      setText("club", fmt(shot.club_speed_mph, 1));
+      setText("shot-id", shot.shot_id || "—");
       document.getElementById("status").textContent =
         (shot.ok ? "ok" : (shot.error || "error")) +
         " · pulse_gap_s " + shot.pulse_gap_s +

@@ -58,3 +58,18 @@ def save_calibration(mm_per_px: float, extra: Optional[dict[str, Any]] = None,
 
 def current_mm_per_px(path: Optional[Path] = None) -> float:
     return float(load_calibration(path)["mm_per_px"])
+
+
+def current_camera_distance_mm(path: Optional[Path] = None) -> Optional[float]:
+    """Calibrated camera-to-ball-plane distance, or None if unset/invalid."""
+    data = load_calibration(path)
+    raw = data.get("camera_distance_mm")
+    if raw is None:
+        return None
+    try:
+        dist = float(raw)
+    except (TypeError, ValueError):
+        return None
+    if dist <= 0:
+        return None
+    return dist

@@ -49,5 +49,10 @@ def test_missing_carry_is_null_not_zero():
     land = landing_yd(None, None)
     assert land["along_yd"] is None
     assert land["offline_yd"] is None
+    assert land["on_line"] is True
     dumped = json.dumps(land)
     assert "null" in dumped
+    with_hla = landing_yd(None, 6.0)
+    assert with_hla["along_yd"] is None
+    assert with_hla["offline_yd"] is None
+    assert with_hla["on_line"] is False

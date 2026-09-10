@@ -8,8 +8,10 @@ import pytest
 
 from store import build_shot_result
 from vision import (
+    GOLF_BALL_DIAMETER_MM,
     MM_S_TO_MPH,
     analyze_frame,
+    estimate_carry_total_yd,
     find_two_dots,
     hla_deg_from_blob_sizes,
     metrics_from_dots,
@@ -75,10 +77,26 @@ def test_hla_deg_from_blob_sizes_none_without_camera_distance():
     assert hla_deg_from_blob_sizes(12.0, 12.0, 0.0, MM_PER_PX, 3000.0) is None
 
 
-def test_hla_equal_diameters_with_camera_distance_is_zero():
+def test_hla_subpixel_or_equal_diameters_stay_null():
+    dx = DOT2[0] - DOT1[0]
+    assert (
+        hla_deg_from_blob_sizes(
+            12.0,
+            12.0,
+            dx,
+            MM_PER_PX,
+            3000.0,
+            pulse_gap_s=0.002,
+        )
+        is None
+    )
+    assert hla_deg_from_blob_sizes(12.0, 12.4, dx, MM_PER_PX, 3000.0) is None
+
+
+def test_hla_measurable_diameter_delta_uses_shipped_atan2():
     dx = DOT2[0] - DOT1[0]
     hla = hla_deg_from_blob_sizes(
-        12.0,
+        20.0,
         12.0,
         dx,
         MM_PER_PX,
@@ -86,7 +104,11 @@ def test_hla_equal_diameters_with_camera_distance_is_zero():
         pulse_gap_s=0.002,
     )
     assert hla is not None
-    assert hla == pytest.approx(0.0, abs=1e-9)
+    d_cal = GOLF_BALL_DIAMETER_MM / MM_PER_PX
+    z1 = 3000.0 * d_cal / 20.0
+    z2 = 3000.0 * d_cal / 12.0
+    expected = math.degrees(math.atan2(z2 - z1, dx * MM_PER_PX))
+    assert hla == pytest.approx(expected, rel=1e-12, abs=1e-9)
 
 
 def test_find_two_dots_returns_intensity_weighted_centroid_and_diameter():
@@ -108,16 +130,28 @@ def test_analyze_frame_hla_none_without_camera_distance():
     assert analyzed["hla_deg"] is not 0  # noqa: E714
 
 
-def test_analyze_frame_equal_blobs_hla_approx_zero_with_distance():
+def test_analyze_frame_equal_blobs_hla_null_even_with_distance():
     img = render_two_dot_image(640, 480, DOT1, DOT2, radius=7)
     analyzed = analyze_frame(
         img, MM_PER_PX, pulse_gap_s=0.002, camera_distance_mm=3000.0
     )
-    assert analyzed["hla_deg"] is not None
-    assert analyzed["hla_deg"] == pytest.approx(0.0, abs=1.0)
+    assert analyzed["hla_deg"] is None
+    assert analyzed["hla_deg"] is not 0  # noqa: E714
     assert analyzed["spin_rpm"] is None
     assert analyzed["face_deg"] is None
     assert analyzed["path_deg"] is None
+
+
+def test_non_positive_vla_carry_is_tee_zero():
+    carry, total = estimate_carry_total_yd(150.0, 0.0)
+    assert carry == 0.0
+    assert total == 0.0
+    down, down_total = estimate_carry_total_yd(150.0, -8.0)
+    assert down == 0.0
+    assert down_total == 0.0
+    up, up_total = estimate_carry_total_yd(150.0, 14.0)
+    assert up > 0.0
+    assert up_total == pytest.approx(up * 1.07)
 
 
 def test_build_shot_result_passes_hla_spin_club_stay_none():

@@ -89,11 +89,14 @@ def hla_deg_from_blob_sizes(
     camera_distance_mm: Optional[float],
     pulse_gap_s: float = PULSE_GAP_S,
     min_diameter_px: float = 4.0,
+    min_delta_diameter_px: float = 1.0,
 ) -> Optional[float]:
     """Azimuth from apparent size change. None when photometry is missing.
 
-    Requires a calibrated camera-to-plane distance. Two similar IR blooms at
-    unknown range cannot observe HLA; that case stays JSON null, never 0.
+    Requires a calibrated camera-to-plane distance. Unmarked 850 nm blooms
+    over 0.002 s usually move <<1 px in apparent size (indoor HLA of several
+    degrees at 3 m is sub-pixel), so |Δd| below ``min_delta_diameter_px``
+    stays JSON null rather than a fake 0°.
     """
     del pulse_gap_s  # gap cancels in atan2(vz*dt, vx*dt)
     if camera_distance_mm is None or camera_distance_mm <= 0:
@@ -101,6 +104,8 @@ def hla_deg_from_blob_sizes(
     if mm_per_px <= 0:
         return None
     if diameter1_px < min_diameter_px or diameter2_px < min_diameter_px:
+        return None
+    if abs(float(diameter2_px) - float(diameter1_px)) < min_delta_diameter_px:
         return None
     if abs(dx_px) < 1e-6:
         return None
@@ -112,10 +117,15 @@ def hla_deg_from_blob_sizes(
 
 
 def estimate_carry_total_yd(ball_speed_mph: float, vla_deg: float) -> tuple[float, float]:
-    """Vacuum-like range with inflated g as a drag stand-in. Not a sim model."""
+    """Vacuum-like range with inflated g as a drag stand-in. Not a sim model.
+
+    Dual-strobe sees unmarked-ball launch only: no spin, so no Magnus term.
+    Non-positive VLA from a ground-level tee lands at the tee (carry 0), not
+    a negative range behind the camera.
+    """
     v = ball_speed_mph * MPH_TO_MPS
     theta = math.radians(vla_deg)
-    if v <= 0 or abs(math.sin(2.0 * theta)) < 1e-12:
+    if v <= 0 or theta <= 0 or abs(math.sin(2.0 * theta)) < 1e-12:
         return 0.0, 0.0
     range_m = (v * v * math.sin(2.0 * theta)) / CARRY_G_EFF
     carry_yd = range_m * M_TO_YD
@@ -257,13 +267,11 @@ def analyze_frame(
     metrics["confidence"] = confidence
     metrics["dot1"] = [dot1[0], dot1[1]]
     metrics["dot2"] = [dot2[0], dot2[1]]
-    if len(found) > 3:
-        d1, d2 = float(found[3][0]), float(found[3][1])
-    else:
-        d1 = float(dot1[2]) if len(dot1) > 2 else None
-        d2 = float(dot2[2]) if len(dot2) > 2 else None
+    d1 = float(dot1[2]) if len(dot1) > 2 else None
+    d2 = float(dot2[2]) if len(dot2) > 2 else None
     metrics["diameter1_px"] = d1
     metrics["diameter2_px"] = d2
+    metrics["hla_deg"] = None
     if camera_distance_mm is not None and d1 is not None and d2 is not None:
         metrics["hla_deg"] = hla_deg_from_blob_sizes(
             d1,
@@ -273,6 +281,4 @@ def analyze_frame(
             camera_distance_mm,
             pulse_gap_s,
         )
-    else:
-        metrics["hla_deg"] = None
     return metrics

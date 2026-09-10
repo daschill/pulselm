@@ -9,25 +9,34 @@ struct RangeView: View {
     }
 
     var body: some View {
-        GeometryReader { geo in
-            ZStack {
-                RangeScenery()
-                if let along = landing.alongYd {
-                    let offline = landing.offlineYd ?? 0
-                    let point = RangeLayout.point(along: along, offline: offline, size: geo.size)
-                    LandingMarker(onLine: landing.onLine, carry: shot?.carry_yd_est)
-                        .position(point)
-                        .animation(.easeOut(duration: 0.45), value: along)
-                        .animation(.easeOut(duration: 0.45), value: offline)
+        Color.clear
+            .aspectRatio(0.72, contentMode: .fit)
+            .frame(maxWidth: .infinity)
+            .frame(minHeight: 280)
+            .overlay {
+                GeometryReader { geo in
+                    ZStack {
+                        RangeScenery()
+                        if let along = landing.alongYd {
+                            let offline = landing.offlineYd ?? 0
+                            let point = RangeLayout.point(along: along, offline: offline, size: geo.size)
+                            LandingMarker(
+                                onLine: landing.onLine,
+                                carry: shot?.carry_yd_est,
+                                offline: landing.offlineYd
+                            )
+                                .position(point)
+                                .animation(.easeOut(duration: 0.45), value: along)
+                                .animation(.easeOut(duration: 0.45), value: offline)
+                        }
+                    }
                 }
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                )
             }
-        }
-        .aspectRatio(0.72, contentMode: .fit)
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(Color.white.opacity(0.08), lineWidth: 1)
-        )
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Driving range")
         .accessibilityValue(accessibilityLanding)
@@ -161,6 +170,7 @@ private struct RangeScenery: View {
 private struct LandingMarker: View {
     var onLine: Bool
     var carry: Double?
+    var offline: Double?
 
     var body: some View {
         ZStack {
@@ -173,17 +183,23 @@ private struct LandingMarker: View {
                 .frame(width: 14, height: 14)
                 .overlay(Circle().stroke(Color(red: 0.24, green: 1.0, blue: 0.60), lineWidth: 2))
                 .shadow(color: Color(red: 0.24, green: 1.0, blue: 0.60).opacity(0.7), radius: 6)
-            if let carry {
-                Text(ShotMapping.carryString(carry) + " yd")
-                    .font(.system(size: 10, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 2)
-                    .background(.black.opacity(0.45), in: Capsule())
-                    .offset(y: 18)
+            VStack(spacing: 2) {
+                if let carry {
+                    Text(ShotMapping.carryString(carry) + " yd")
+                }
+                if !onLine, let offline {
+                    Text(ShotMapping.metricString(offline, decimals: 1) + " yd off")
+                }
             }
+            .font(.system(size: 10, weight: .bold, design: .rounded))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 5)
+            .padding(.vertical, 2)
+            .background(.black.opacity(0.45), in: Capsule())
+            .offset(y: 22)
+            .opacity((carry == nil && onLine) ? 0 : 1)
         }
-        .frame(width: 64, height: 48)
+        .frame(width: 72, height: 56)
         .accessibilityLabel(onLine ? "Landing on target line" : "Landing offline")
     }
 }

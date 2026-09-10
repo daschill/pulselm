@@ -5,12 +5,14 @@ enum ShotMapping {
 
     /// nil → "—", else two decimal places (159.1608 → "159.16").
     static func speedString(_ mph: Double?) -> String {
-        format(mph, decimals: 2)
+        guard let mph else { return missing }
+        return String(format: "%.2f", mph)
     }
 
     /// nil → "—", else one decimal (shipped HUD).
     static func vlaString(_ vla: Double?) -> String {
-        format(vla, decimals: 1)
+        guard let vla else { return missing }
+        return String(format: "%.1f", vla)
     }
 
     static func carryString(_ yards: Double?) -> String {

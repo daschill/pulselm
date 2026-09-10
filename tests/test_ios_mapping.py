@@ -54,5 +54,11 @@ def test_ios_sources_bind_shotresult_fields():
         encoding="utf-8"
     )
     assert "cos(" in landing_src and "sin(" in landing_src
+    assert "hla == nil" in landing_src or "hla == nil" in blob
     assert "AVCapture" not in blob
     assert "CBCentralManager" not in blob
+    range_src = (IOS_ROOT / "PulseLM" / "Views" / "RangeView.swift").read_text(
+        encoding="utf-8"
+    )
+    assert "RangeLanding.from" in range_src
+    assert "yd off" in range_src
