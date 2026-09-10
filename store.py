@@ -79,10 +79,9 @@ def build_shot_result(
 ) -> dict[str, Any]:
     """Assemble a ShotResult. Missing metrics are JSON null, never 0-as-missing.
 
-    ``hla_deg`` may be passed through from blob-size photometry. Spin and club
-    stay null: no ball markings and no club in the cheap dual-strobe frame.
+    Dual-strobe-only shots leave spin/club/face/path None. Radar + 4-cam
+    fusion may pass those through when the capture actually contains them.
     """
-    del spin_rpm, spin_axis_deg, club_speed_mph, face_deg, path_deg
     result: dict[str, Any] = {
         "schema": SCHEMA,
         "shot_id": shot_id,
@@ -92,11 +91,11 @@ def build_shot_result(
         "ball_speed_mph": ball_speed_mph,
         "vla_deg": vla_deg,
         "hla_deg": hla_deg,
-        "spin_rpm": _null(),
-        "spin_axis_deg": _null(),
-        "club_speed_mph": _null(),
-        "face_deg": _null(),
-        "path_deg": _null(),
+        "spin_rpm": spin_rpm,
+        "spin_axis_deg": spin_axis_deg,
+        "club_speed_mph": club_speed_mph,
+        "face_deg": face_deg,
+        "path_deg": path_deg,
         "carry_yd_est": carry_yd_est,
         "total_yd_est": total_yd_est,
         "confidence": confidence,

@@ -14,6 +14,7 @@ import range_landing
 import shot_ui
 import store
 from service.pulse import PULSE_GAP_S, STROBE_PIN, TRIG_PIN
+from fusion import fuse_shot
 from vision import analyze_frame, metrics_from_dots
 
 ROOT = Path(__file__).resolve().parent
@@ -60,6 +61,12 @@ def create_app(
                 },
                 "pulse_gap_s": PULSE_GAP_S,
                 "schema": store.SCHEMA,
+                "sensors": {
+                    "cameras": 4,
+                    "camera": "OV9281",
+                    "radar": "24ghz_cw",
+                    "strobe": True,
+                },
             }
         )
 
@@ -216,6 +223,59 @@ def create_app(
         except ValueError as exc:
             return jsonify({"ok": False, "error": str(exc)}), 400
         return jsonify({"ok": True, "calibration": saved})
+
+    @app.post("/api/v1/fuse")
+    def fuse_ingest() -> Any:
+        """Ingest 4-cam + radar sample (no GPIO). Used by hardware dongle and tests."""
+        body = request.get_json(silent=True) or {}
+        fused = fuse_shot(
+            side_dot1=body.get("side_dot1"),
+            side_dot2=body.get("side_dot2"),
+            mm_per_px=float(body.get("mm_per_px") or 1.8),
+            pulse_gap_s=float(body.get("pulse_gap_s") or PULSE_GAP_S),
+            radar_ball_doppler_hz=body.get("radar_ball_doppler_hz"),
+            radar_club_doppler_hz=body.get("radar_club_doppler_hz"),
+            radar_f0_hz=float(body.get("radar_f0_hz") or 24.125e9),
+            radar_approach_angle_deg=float(body.get("radar_approach_angle_deg") or 0.0),
+            stereo_left_dot1=body.get("stereo_left_dot1"),
+            stereo_left_dot2=body.get("stereo_left_dot2"),
+            stereo_right_dot1=body.get("stereo_right_dot1"),
+            stereo_right_dot2=body.get("stereo_right_dot2"),
+            stereo_baseline_mm=body.get("stereo_baseline_mm"),
+            stereo_focal_px=body.get("stereo_focal_px"),
+            face_on_dot1=body.get("face_on_dot1"),
+            face_on_dot2=body.get("face_on_dot2"),
+            club_dot1=body.get("club_dot1"),
+            club_dot2=body.get("club_dot2"),
+            mark_angle1_deg=body.get("mark_angle1_deg"),
+            mark_angle2_deg=body.get("mark_angle2_deg"),
+            face_deg=body.get("face_deg"),
+        )
+        import time as _time
+
+        sid = store.next_shot_id(shots_root()) if body.get("save") else "shot_00000"
+        result = store.build_shot_result(
+            shot_id=sid,
+            unix_ts=_time.time(),
+            ok=fused.get("ball_speed_mph") is not None,
+            error=None if fused.get("ball_speed_mph") is not None else "no ball speed",
+            ball_speed_mph=fused.get("ball_speed_mph"),
+            vla_deg=fused.get("vla_deg"),
+            hla_deg=fused.get("hla_deg"),
+            spin_rpm=fused.get("spin_rpm"),
+            spin_axis_deg=fused.get("spin_axis_deg"),
+            club_speed_mph=fused.get("club_speed_mph"),
+            face_deg=fused.get("face_deg"),
+            path_deg=fused.get("path_deg"),
+            carry_yd_est=fused.get("carry_yd_est"),
+            total_yd_est=fused.get("total_yd_est"),
+            confidence=fused.get("confidence"),
+            ghost_px=fused.get("ghost_px"),
+            pulse_gap_s=fused.get("pulse_gap_s") or PULSE_GAP_S,
+        )
+        out = dict(result)
+        out["sources"] = fused.get("sources")
+        return jsonify(out)
 
     @app.get("/")
     def index() -> Any:

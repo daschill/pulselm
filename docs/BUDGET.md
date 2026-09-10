@@ -2,19 +2,18 @@
 
 Street budget tier (2026): Garmin Approach R10 ~$599, Rapsodo MLM2PRO ~$500–700 + subscription, Mevo+ well above that. Those units use Doppler radar and/or marked-ball cameras. They estimate or measure spin. They want indoor ball flight of several yards.
 
-PulseLM’s lane is **sub-$150 indoor photometry** (Pi 3 + OV9281 dual-strobe + 12 V IR LEDs, no subscription):
+PulseLM’s product sensors are **4× OV9281 global-shutter (Camarray) + 24 GHz CW Doppler**, still no subscription, BOM targeted under a Garmin R10:
 
-| Metric | Budget radar (R10 class) | PulseLM dual-strobe |
+| Metric | R10-class | PulseLM 4-cam + radar |
 |---|---|---|
-| Ball speed | Doppler | Two 2 µs ghosts / 0.002 s, global shutter |
-| VLA | Radar | atan2 of the two dots |
-| HLA | Radar / cameras | Only if blob size actually changes + `camera_distance_mm` |
-| Spin | Estimated or marked-ball | **JSON null** (unmarked IR cannot see dimples) |
-| Club | Radar behind the ball | **JSON null** |
-| Carry | Flight model | Drag + lift using an *internal* typical-spin prior; `spin_rpm` stays null |
-| Indoor net | Needs ball flight / alignment | One exposure, two flashes — works into a net |
+| Ball speed | Doppler | **Radar preferred**, dual-strobe cross-check |
+| VLA | Radar | Side-on two-dot (cam 0) |
+| HLA | Radar | Stereo pair (cam 0–1) or face-on (cam 2) |
+| Spin | Estimated or marked-ball | Ball **mark** between 2 µs flashes; else JSON null |
+| Club speed | Radar | 24 GHz club peak |
+| Path / face | Some units | Cam 3 club two-dot path; face needs markings |
+| Carry | Flight model | Drag + lift; `spin_rpm` published only if marked |
+| Indoor net | Needs ball flight | Dual-strobe works into a net |
 | Subscription | Often $0–$200/yr | None |
 
-Industry-leading **at this BOM** means: honest measured speed/VLA, a carry number in the amateur-driver band, session means/SD, CSV, native iOS range — not fake Trackman spin.
-
-Hardware ceiling: one side-on OV9281 cannot become a GCQuad. Adding spin requires markings or a second view. Do not fill `spin_rpm` to look complete.
+Do not fill `spin_rpm` from the carry prior. Radar + four global-shutter views are how this stack reaches HLA/club; unmarked IR blobs still cannot see dimple spin.

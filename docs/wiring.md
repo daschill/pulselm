@@ -1,14 +1,34 @@
-# PulseLM Week 1 wiring (Pi 3 + OV9281)
+# PulseLM wiring — 4× OV9281 + 24 GHz radar
 
-Indoor dual-strobe launch monitor. The iPhone 15 Pro is **display only** (browser to `http://<pi>:8080`). It is not a camera, not a BLE sensor, and not part of the capture path.
+Indoor launch monitor. The iPhone is **display only** (`http://<host>:8080` or the native app). It is not a camera.
 
-## Camera
+Product sensors: **four OV9281 global-shutter cameras** (dual-strobe) **plus a 24 GHz CW Doppler**. Rolling shutter, OS04C10, ESP32-CAM, Pi Cam v2/v3, and iPhone-as-sensor stay out.
 
-- Sensor: **OV9281 global shutter**, MIPI CSI-2 on the Raspberry Pi 3 CSI connector.
-- Module: **InnoMaker CAM-MIPIOV9281V2**.
-- TRIG: camera **J3** — **TRIG+** (3.3–5.0 V isolated input) to **GPIO15**, **TRIG−** to Pi GND.
-- Overlay (Raspberry Pi OS): comment out `camera_auto_detect=1` and add `dtoverlay=ov9281` in `/boot/config.txt` or `/boot/firmware/config.txt`. Pi 3 has a single CSI connector (the default Unicam / CSI1 path).
-- Forbidden on this project: rolling shutter, OS04C10, ESP32-CAM, Pi Camera v2, Pi Camera v3, iPhone as sensor, BLE, Camera2, a second camera, radar.
+## Four cameras
+
+| Cam | Role | What it measures |
+|---|---|---|
+| 0 | Side-on, strobed | Two-dot ball speed, VLA |
+| 1 | Side-on stereo mate (~80 mm baseline) | HLA (Z from disparity) |
+| 2 | Face-on / down-the-line | HLA, face if markings |
+| 3 | High-behind | Club path (two-dot on the head) |
+
+- Modules: **OV9281 global shutter** (InnoMaker CAM-MIPIOV9281V2 or Arducam OV9281).
+- Quad CSI: **Arducam Camarray** (four OV9281 on one CSI). Pi 3 is bandwidth-tight; **Pi 5 / CM4** is the intended host for 4-cam.
+- Shared **GPIO15 → every J3 TRIG+**, TRIG− to GND. One exposure, four frames.
+- Overlay: `dtoverlay` for the Camarray / ov9281 stack in `/boot/firmware/config.txt`.
+
+## Radar (24 GHz CW)
+
+- Module: 24.125 GHz CW Doppler (CDM324-class / Infineon BGT24 I/Q).
+- Place **behind the tee, looking downrange**. IF/I-Q into a USB sound card or ADC; peak `fd` → `v = fd * c / (2 * f0)`.
+- Ball peak → `ball_speed_mph` (preferred over two-dot when both exist).
+- Club peak (same beam or a second module on the club path) → `club_speed_mph`.
+- Radar does **not** invent spin. `spin_rpm` only from a visible ball mark between the two 2 µs flashes.
+
+## Camera (legacy single OV9281)
+
+Single-cam dual-strobe still works (`--demo` and Pi 3 CSI). Fusion then leaves HLA/spin/club JSON null unless radar/stereo data is posted to `POST /api/v1/fuse`.
 
 Global shutter is required so two 2 µs IR flashes in one exposure produce two crisp ball dots (not smeared streaks).
 

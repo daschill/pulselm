@@ -54,6 +54,8 @@ def test_demo_health_and_latest(client):
     assert body["ok"] is True
     assert body["demo"] is True
     assert body["gpio"] is None
+    assert body["sensors"]["cameras"] == 4
+    assert body["sensors"]["radar"] == "24ghz_cw"
     latest = client.get("/shot/latest")
     assert latest.status_code == 200
     shot = latest.get_json()
@@ -65,6 +67,29 @@ def test_demo_health_and_latest(client):
     fixture = load_fixture_result()
     assert shot["ball_speed_mph"] == fixture["ball_speed_mph"]
     assert list(shot.keys()) == list(SHOT_FIELDS)
+
+
+def test_fuse_radar_overrides_and_keeps_null_spin(client):
+    from radar import doppler_hz_for_speed_mps, speed_mph_from_doppler
+
+    fd = doppler_hz_for_speed_mps(67.056)
+    r = client.post(
+        "/api/v1/fuse",
+        json={
+            "side_dot1": [180.0, 420.0],
+            "side_dot2": [255.0, 395.0],
+            "mm_per_px": 1.8,
+            "radar_ball_doppler_hz": fd,
+            "radar_club_doppler_hz": doppler_hz_for_speed_mps(67.056 / 1.48),
+        },
+    )
+    assert r.status_code == 200
+    shot = r.get_json()
+    assert shot["schema"] == "pulselm.shot.v1"
+    assert shot["ball_speed_mph"] == pytest.approx(speed_mph_from_doppler(fd), rel=1e-6)
+    assert shot["club_speed_mph"] is not None
+    assert shot["spin_rpm"] is None
+    assert shot["sources"]["ball_speed_mph"] == "radar"
 
 
 def test_demo_index_shows_speed(client):

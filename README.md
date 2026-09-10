@@ -1,6 +1,6 @@
 # PulseLM
 
-Indoor **budget** launch monitor on the cheapest capture path: Raspberry Pi 3 + OV9281 dual-strobe (BOM well under a Garmin R10). The **iPhone is display only** (native iOS app + Safari LAN page). It is not the camera.
+Indoor **budget** launch monitor: **4× OV9281 global-shutter + 24 GHz CW radar** (Camarray + dual-strobe; Pi 5/CM4 for four cameras). The **iPhone is display only**. Single-cam `--demo` still runs without radar.
 
 See [docs/BUDGET.md](docs/BUDGET.md) for the honest comparison: we **measure** ball speed and VLA; carry is estimated; spin/club stay JSON `null`. No subscription.
 

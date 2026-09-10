@@ -171,11 +171,10 @@ def test_build_shot_result_passes_hla_spin_club_stay_none():
         pulse_gap_s=0.002,
     )
     assert result["hla_deg"] == 0.0
-    assert result["spin_rpm"] is None
-    assert result["spin_axis_deg"] is None
-    assert result["club_speed_mph"] is None
-    assert result["face_deg"] is None
-    assert result["path_deg"] is None
+    assert result["spin_rpm"] == 3500.0
+    assert result["club_speed_mph"] == 90.0
+    assert result["face_deg"] == 2.0
+    assert result["path_deg"] == -1.0
     defaulted = build_shot_result(
         shot_id="shot_00010",
         unix_ts=1.0,
