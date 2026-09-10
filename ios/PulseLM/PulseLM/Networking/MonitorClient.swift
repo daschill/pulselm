@@ -15,6 +15,33 @@ struct ShotsListResponse: Codable, Equatable, Sendable {
     var shots: [ShotResult]
 }
 
+struct PracticeTiles: Codable, Equatable, Sendable {
+    var ball_speed_mph: Double?
+    var vla_deg: Double?
+    var hla_deg: Double?
+    var spin_rpm: Double?
+    var club_speed_mph: Double?
+    var smash: Double?
+    var carry_yd_est: Double?
+    var total_yd_est: Double?
+    var apex_yd: Double?
+    var hang_time_s: Double?
+    var land_angle_deg: Double?
+    var dist_to_pin_yd: Double?
+    var curve_yd: Double?
+    var along_yd: Double?
+    var offline_yd: Double?
+}
+
+struct PracticePayload: Codable, Equatable, Sendable {
+    var ok: Bool
+    var pin_yd: Double?
+    var clubs: [String]?
+    var games: [String]?
+    var tiles: PracticeTiles?
+    var shot_count: Int?
+}
+
 struct SessionSummary: Codable, Equatable, Sendable {
     var ok: Bool
     var shot_count: Int
@@ -39,6 +66,9 @@ final class MonitorClient: ObservableObject {
     @Published var shots: [ShotResult] = []
     @Published var health: HealthResponse?
     @Published var sessionSummary: SessionSummary?
+    @Published var practice: PracticePayload?
+    @Published var selectedClub: String = "Dr"
+    @Published var gameMode: String = "practice"
     @Published var isBusy = false
     @Published var lastError: String?
 
@@ -98,6 +128,13 @@ final class MonitorClient: ObservableObject {
         return list.shots
     }
 
+    func fetchPractice(pin: Double = 250) async throws -> PracticePayload {
+        let value: PracticePayload = try await get(path: "/api/v1/practice?pin=\(Int(pin))")
+        practice = value
+        lastError = nil
+        return value
+    }
+
     func fetchSession() async throws -> SessionSummary {
         let value: SessionSummary = try await get(path: "/api/v1/session")
         sessionSummary = value
@@ -111,6 +148,7 @@ final class MonitorClient: ObservableObject {
             _ = try await fetchLatest()
             _ = try? await fetchShots()
             _ = try? await fetchSession()
+            _ = try? await fetchPractice()
         } catch {
             lastError = error.localizedDescription
         }

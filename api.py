@@ -108,6 +108,36 @@ def create_app(
         summary["schema"] = store.SCHEMA
         return jsonify(summary)
 
+    @app.get("/api/v1/practice")
+    def practice_view() -> Any:
+        import range_metrics
+        from session import summarize_session
+
+        pin = float(request.args.get("pin", 250))
+        ids = store.list_shot_ids(shots_root())
+        items = []
+        for sid in ids:
+            try:
+                items.append(store.load_result(sid, shots_root()))
+            except FileNotFoundError:
+                continue
+        latest = items[-1] if items else None
+        tiles = range_metrics.tiles_from_shot(latest, pin_yd=pin) if latest else None
+        summary = summarize_session(items)
+        return jsonify(
+            {
+                "ok": True,
+                "pin_yd": pin,
+                "clubs": list(range_metrics.CLUBS),
+                "games": list(range_metrics.GAMES),
+                "tiles": tiles,
+                "closest": range_metrics.closest_to_pin(items, pin),
+                "longest": range_metrics.longest_drive(items),
+                "dispersion": summary.get("dispersion"),
+                "shot_count": summary.get("shot_count"),
+            }
+        )
+
     @app.get("/shots.csv")
     def shots_csv() -> Any:
         ids = store.list_shot_ids(shots_root())

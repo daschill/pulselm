@@ -10,7 +10,13 @@ struct ContentView: View {
                 VStack(spacing: 12) {
                     header
                     ShotHUD(shot: client.latest, compact: true)
-                    RangeView(shot: client.latest, session: client.shots)
+                    RangeView(
+                        shot: client.latest,
+                        session: client.shots,
+                        practice: client.practice,
+                        selectedClub: $client.selectedClub,
+                        gameMode: $client.gameMode
+                    )
                     sessionStrip
                     armButton
                     statusLine

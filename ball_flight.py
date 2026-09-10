@@ -33,23 +33,30 @@ def typical_backspin_rpm(ball_speed_mph: float, vla_deg: float) -> float:
     return max(3500.0, min(11000.0, rpm))
 
 
-def estimate_carry_total_yd(
+def simulate_flight(
     ball_speed_mph: float,
     vla_deg: float,
     *,
     backspin_rpm: Optional[float] = None,
     dt: float = 0.002,
-) -> tuple[float, float]:
-    """2D trajectory with drag + lift from a spin *prior*.
+) -> dict:
+    """Full trajectory extras used by Trackman-style range tiles.
 
-    Non-positive VLA from a ground tee → carry 0 (not a behind-the-camera range).
+    apex_yd, hang_time_s, land_angle_deg. Carry/total same as estimate_carry_total_yd.
     """
+    empty = {
+        "carry_yd": 0.0,
+        "total_yd": 0.0,
+        "apex_yd": 0.0,
+        "hang_time_s": 0.0,
+        "land_angle_deg": None,
+    }
     if ball_speed_mph <= 0 or vla_deg <= 0:
-        return 0.0, 0.0
+        return empty
     v0 = float(ball_speed_mph) * MPH_TO_MPS
     theta = math.radians(float(vla_deg))
     if v0 <= 0 or theta <= 0:
-        return 0.0, 0.0
+        return empty
     spin = typical_backspin_rpm(ball_speed_mph, vla_deg) if backspin_rpm is None else float(backspin_rpm)
     if spin < 0:
         spin = 0.0
@@ -58,6 +65,8 @@ def estimate_carry_total_yd(
     vy = v0 * math.sin(theta)
     x = 0.0
     y = 0.0
+    apex_m = 0.0
+    t = 0.0
     landed = False
     steps = int(10.0 / dt)
     for _ in range(steps):
@@ -74,17 +83,42 @@ def estimate_carry_total_yd(
         vy += ay * dt
         x_next = x + vx * dt
         y_next = y + vy * dt
+        t += dt
+        if y_next > apex_m:
+            apex_m = y_next
         if y_next < 0.0 and x_next > 0.5:
             frac = y / (y - y_next) if y_next != y else 1.0
             x = x + frac * (x_next - x)
+            t -= dt * (1.0 - frac)
             landed = True
             break
         x, y = x_next, y_next
     carry_yd = max(0.0, x * M_TO_YD)
-    # High launch / wedge: less roll. Driver: ~8–12 %.
     roll = 0.11 * max(0.0, 1.0 - float(vla_deg) / 42.0)
     if not landed and y > 0:
-        # Still airborne at timeout: use x as carry estimate.
         roll *= 0.5
-    total_yd = carry_yd * (1.0 + roll)
-    return carry_yd, total_yd
+    land_angle = math.degrees(math.atan2(-vy, vx)) if landed else None
+    return {
+        "carry_yd": carry_yd,
+        "total_yd": carry_yd * (1.0 + roll),
+        "apex_yd": max(0.0, apex_m * M_TO_YD),
+        "hang_time_s": max(0.0, t),
+        "land_angle_deg": land_angle,
+    }
+
+
+def estimate_carry_total_yd(
+    ball_speed_mph: float,
+    vla_deg: float,
+    *,
+    backspin_rpm: Optional[float] = None,
+    dt: float = 0.002,
+) -> tuple[float, float]:
+    """2D trajectory with drag + lift from a spin *prior*.
+
+    Non-positive VLA from a ground tee → carry 0 (not a behind-the-camera range).
+    """
+    sim = simulate_flight(
+        ball_speed_mph, vla_deg, backspin_rpm=backspin_rpm, dt=dt
+    )
+    return sim["carry_yd"], sim["total_yd"]

@@ -4,7 +4,24 @@ import SwiftUI
 struct RangeView: View {
     var shot: ShotResult?
     var session: [ShotResult] = []
+    var practice: PracticePayload?
+    @Binding var selectedClub: String
+    @Binding var gameMode: String
     @State private var pinYards: Double = 250
+
+    init(
+        shot: ShotResult?,
+        session: [ShotResult] = [],
+        practice: PracticePayload? = nil,
+        selectedClub: Binding<String> = .constant("Dr"),
+        gameMode: Binding<String> = .constant("practice")
+    ) {
+        self.shot = shot
+        self.session = session
+        self.practice = practice
+        self._selectedClub = selectedClub
+        self._gameMode = gameMode
+    }
 
     private var landing: RangeLanding {
         RangeLanding.from(carry: shot?.carry_yd_est, hla: shot?.hla_deg)
@@ -12,8 +29,11 @@ struct RangeView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            clubAndGame
             pinPicker
+            dataTiles
             canvas
+            gamesStrip
             callout
         }
         .background(Color(red: 0.02, green: 0.04, blue: 0.03))
@@ -25,6 +45,101 @@ struct RangeView: View {
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Driving range")
         .accessibilityValue(accessibilityLanding)
+    }
+
+    private var clubAndGame: some View {
+        HStack(spacing: 8) {
+            Menu {
+                ForEach(practice?.clubs ?? ["Dr", "7i", "PW", "SW"], id: \.self) { c in
+                    Button(c) { selectedClub = c }
+                }
+            } label: {
+                Text(selectedClub)
+                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color.white.opacity(0.1), in: Capsule())
+            }
+            ForEach(["practice", "closest", "longest", "random"], id: \.self) { g in
+                Button {
+                    gameMode = g
+                    if g == "random" {
+                        pinYards = [150, 200, 250, 300, 400].randomElement() ?? 250
+                    }
+                } label: {
+                    Text(g.prefix(1).uppercased() + g.dropFirst())
+                        .font(.system(size: 10, weight: .semibold, design: .rounded))
+                        .foregroundStyle(gameMode == g ? Color.black : .white)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 6)
+                        .background(
+                            Capsule().fill(gameMode == g ? Color(red: 0.24, green: 1.0, blue: 0.60) : Color.white.opacity(0.08))
+                        )
+                }
+                .buttonStyle(.plain)
+            }
+            Spacer()
+        }
+        .padding(.horizontal, 10)
+        .padding(.top, 8)
+    }
+
+    private var dataTiles: some View {
+        let t = practice?.tiles
+        let smash = t?.smash.map { String(format: "%.2f", $0) } ?? "—"
+        let apex = t?.apex_yd.map { String(format: "%.0f", $0) } ?? "—"
+        let hang = t?.hang_time_s.map { String(format: "%.1fs", $0) } ?? "—"
+        let land = t?.land_angle_deg.map { String(format: "%.0f°", $0) } ?? "—"
+        let total = t?.total_yd_est.map { String(format: "%.0f", $0) } ?? "—"
+        let curve = t?.curve_yd.map { String(format: "%.1f", $0) } ?? "—"
+        return ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 6) {
+                miniTile("Smash", smash)
+                miniTile("Apex", apex)
+                miniTile("Hang", hang)
+                miniTile("Land", land)
+                miniTile("Total", total)
+                miniTile("Curve", curve)
+            }
+            .padding(.horizontal, 10)
+        }
+        .padding(.bottom, 4)
+    }
+
+    private func miniTile(_ title: String, _ value: String) -> some View {
+        VStack(spacing: 2) {
+            Text(title.uppercased())
+                .font(.system(size: 8, weight: .semibold, design: .rounded))
+                .foregroundStyle(.white.opacity(0.45))
+            Text(value)
+                .font(.system(size: 13, weight: .bold, design: .rounded))
+                .monospacedDigit()
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private var gamesStrip: some View {
+        HStack {
+            if gameMode == "closest", let d = practice?.tiles?.dist_to_pin_yd {
+                Text(String(format: "CTP  %.1f yd to pin", d))
+            } else if gameMode == "longest" {
+                let best = session.compactMap(\.carry_yd_est).max()
+                Text(best.map { String(format: "Longest  %.0f yd", $0) } ?? "Longest  —")
+            } else if gameMode == "random" {
+                Text(String(format: "Random pin  %.0f yd", pinYards))
+            } else {
+                Text("Practice")
+            }
+            Spacer()
+            Text("Tour 8 yd · 15hcp 22 yd")
+                .foregroundStyle(.white.opacity(0.4))
+        }
+        .font(.system(size: 11, weight: .semibold, design: .rounded))
+        .foregroundStyle(Color(red: 0.24, green: 1.0, blue: 0.60))
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
     }
 
     private var pinPicker: some View {
@@ -83,6 +198,7 @@ struct RangeView: View {
                     ZStack {
                         RangeScenery(pinYards: pinYards)
                         sessionDots(size: geo.size)
+                        dispersionRings(size: geo.size)
                         tracerAndBall(size: geo.size)
                     }
                 }
@@ -100,6 +216,29 @@ struct RangeView: View {
                     .frame(width: 7, height: 7)
                     .position(RangeLayout.point(along: along, offline: land.offlineYd ?? 0, size: size))
             }
+        }
+    }
+
+    @ViewBuilder
+    private func dispersionRings(size: CGSize) -> some View {
+        let lands = session.compactMap { s -> CGPoint? in
+            let land = RangeLanding.from(shot: s)
+            guard let along = land.alongYd else { return nil }
+            return RangeLayout.point(along: along, offline: land.offlineYd ?? 0, size: size)
+        }
+        if lands.count >= 2 {
+            let mx = lands.map(\.x).reduce(0, +) / CGFloat(lands.count)
+            let my = lands.map(\.y).reduce(0, +) / CGFloat(lands.count)
+            let p = RangeLayout.point(along: 250, offline: 0, size: size)
+            let scale = max(6.0, abs(p.y - RangeLayout.point(along: 250 + 8, offline: 0, size: size).y))
+            Circle()
+                .stroke(Color.yellow.opacity(0.35), lineWidth: 1)
+                .frame(width: scale * 2, height: scale * 1.1)
+                .position(x: mx, y: my)
+            Circle()
+                .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                .frame(width: scale * 5.5, height: scale * 3)
+                .position(x: mx, y: my)
         }
     }
 

@@ -44,6 +44,9 @@ def summarize_session(shots: list[dict[str, Any]]) -> dict[str, Any]:
     vlas = _nums(shots, "vla_deg")
     carrys = _nums(shots, "carry_yd_est")
     n = len(speeds)
+    from range_metrics import closest_to_pin, longest_drive
+
+    longest = longest_drive(shots)
     return {
         "ok": True,
         "shot_count": n,
@@ -65,4 +68,33 @@ def summarize_session(shots: list[dict[str, Any]]) -> dict[str, Any]:
             "face_deg",
             "path_deg",
         ],
+        "longest": longest,
+        "dispersion": _dispersion(shots),
+    }
+
+
+def _dispersion(shots: list[dict[str, Any]]) -> dict[str, Any]:
+    from range_landing import landing_from_shot
+
+    pts = []
+    for s in shots:
+        if not s.get("ok"):
+            continue
+        land = landing_from_shot(s)
+        if land.get("along_yd") is None:
+            continue
+        pts.append((float(land["along_yd"]), float(land.get("offline_yd") or 0.0)))
+    if not pts:
+        return {"n": 0, "along_mean": None, "offline_mean": None, "radius_yd": None}
+    n = len(pts)
+    am = sum(p[0] for p in pts) / n
+    om = sum(p[1] for p in pts) / n
+    if n < 2:
+        return {"n": n, "along_mean": am, "offline_mean": om, "radius_yd": None}
+    var = sum((p[0] - am) ** 2 + (p[1] - om) ** 2 for p in pts) / (n - 1)
+    return {
+        "n": n,
+        "along_mean": am,
+        "offline_mean": om,
+        "radius_yd": math.sqrt(var),
     }

@@ -67,3 +67,7 @@ def test_ios_sources_bind_shotresult_fields():
     assert "pinYards" in range_src
     assert "150.0, 200.0, 250.0, 300.0, 400.0, 500.0" in range_src
     assert "maxAlongYd: Double = 500" in range_src
+    assert "closest" in range_src
+    assert "longest" in range_src
+    assert "Smash" in range_src
+    assert "dispersionRings" in range_src

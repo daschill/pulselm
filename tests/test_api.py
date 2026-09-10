@@ -125,6 +125,18 @@ def test_r10_openconnect_http(client):
     assert latest["shot_id"] == shot["shot_id"]
 
 
+def test_practice_tiles_and_games(client):
+    r = client.get("/api/v1/practice?pin=250")
+    assert r.status_code == 200
+    body = r.get_json()
+    assert body["ok"] is True
+    assert "Dr" in body["clubs"]
+    assert "closest" in body["games"]
+    assert body["tiles"]["ball_speed_mph"] == pytest.approx(159.1608)
+    assert body["tiles"]["apex_yd"] is not None
+    assert body["longest"]["carry_yd_est"] is not None
+
+
 def test_demo_index_shows_speed(client):
     fixture = load_fixture_result()
     speed = f"{float(fixture['ball_speed_mph']):.2f}"
