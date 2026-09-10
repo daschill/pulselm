@@ -5,6 +5,7 @@ struct ContentView: View {
     @State private var showHostEditor = false
     @State private var showCourses = false
     @State private var showScorecard = false
+    @State private var courseQuery = ""
 
     var body: some View {
         NavigationStack {
@@ -49,6 +50,9 @@ struct ContentView: View {
             }
             .task {
                 await client.refresh()
+                if client.health?.ok != true {
+                    showHostEditor = true
+                }
             }
             .refreshable {
                 await client.refresh()
@@ -73,6 +77,15 @@ struct ContentView: View {
                 }
             }
             Spacer()
+            Button("COURSES") {
+                showCourses = true
+                Task { _ = try? await client.searchCourses() }
+            }
+            .font(.system(size: 11, weight: .bold, design: .rounded))
+            .foregroundStyle(.black)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(Color(red: 0.24, green: 1.0, blue: 0.60), in: Capsule())
             healthBadge
             if client.play?.playing == true || client.play?.round_complete == true {
                 Button("CARD") { showScorecard = true }
@@ -160,6 +173,12 @@ struct ContentView: View {
 
     private var bayBottomBar: some View {
         HStack(spacing: 8) {
+            Button("CONNECT") { showHostEditor = true }
+                .font(.system(size: 13, weight: .bold, design: .rounded))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 12)
+                .background(.ultraThinMaterial, in: Capsule())
             Menu {
                 ForEach(["Dr", "3W", "5W", "4i", "5i", "6i", "7i", "8i", "9i", "PW", "GW", "SW", "LW"], id: \.self) { c in
                     Button(c) { client.selectedClub = c }
@@ -295,31 +314,56 @@ struct ContentView: View {
 
     private var courseSheet: some View {
         NavigationStack {
-            List(client.courseResults) { c in
-                Button {
-                    Task {
-                        if let id = Optional(c.id) {
-                            _ = try? await client.startPlay(courseId: id)
-                            showCourses = false
+            List {
+                Section {
+                    TextField("Search courses (bethpage, torrey…)", text: $courseQuery)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .onSubmit {
+                            Task { _ = try? await client.searchCourses(q: courseQuery) }
                         }
+                    Button("Search") {
+                        Task { _ = try? await client.searchCourses(q: courseQuery) }
                     }
-                } label: {
-                    VStack(alignment: .leading) {
-                        Text(c.name ?? c.id)
-                            .font(.headline)
-                        Text([c.city, c.state, c.par.map { "par \($0)" }].compactMap { $0 }.joined(separator: " · "))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                }
+                if let err = client.lastError {
+                    Section {
+                        Text(err).font(.footnote).foregroundStyle(.orange)
+                    }
+                }
+                Section("Courses") {
+                    ForEach(client.courseResults) { c in
+                        Button {
+                            Task {
+                                do {
+                                    _ = try await client.startPlay(courseId: c.id)
+                                    showCourses = false
+                                } catch {
+                                    client.lastError = error.localizedDescription
+                                }
+                            }
+                        } label: {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(c.name ?? c.id)
+                                    .font(.headline)
+                                    .foregroundStyle(.primary)
+                                Text([c.city, c.state, c.type, c.par.map { "par \($0)" }].compactMap { $0 }.joined(separator: " · "))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
                     }
                 }
             }
-            .navigationTitle("Play")
+            .navigationTitle("Play 18 holes")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close") { showCourses = false }
                 }
             }
-            .task { _ = try? await client.searchCourses() }
+            .task {
+                _ = try? await client.searchCourses(q: courseQuery)
+            }
         }
     }
 
@@ -425,17 +469,34 @@ struct ContentView: View {
     private var hostSheet: some View {
         NavigationStack {
             Form {
-                Section("Pi monitor") {
-                    TextField("Base URL", text: $client.baseURLString)
+                Section("1. Start PulseLM on the PC") {
+                    Text("In PowerShell:\npython pulselm.py --demo --r10 --host 0.0.0.0 --port 18080")
+                        .font(.footnote)
+                        .textSelection(.enabled)
+                }
+                Section("2. This phone talks to that PC") {
+                    TextField("http://192.168.0.139:18080", text: $client.baseURLString)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .keyboardType(.URL)
-                    Text("Default \(MonitorClient.defaultBaseURLString). HTTP on the LAN is allowed.")
+                    Button("Test connection") {
+                        Task { await client.refresh() }
+                    }
+                    HStack {
+                        Text("Status")
+                        Spacer()
+                        healthBadge
+                    }
+                    if let err = client.lastError {
+                        Text(err).font(.footnote).foregroundStyle(.orange)
+                    }
+                }
+                Section("3. Garmin R10") {
+                    Text("Pair the R10 to the Windows PC (not this iPhone). Close Garmin Golf on the phone. The PC ingest is TCP 921 / POST /api/v1/r10. This iPhone is display only.")
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
                 }
             }
-            .navigationTitle("Connection")
+            .navigationTitle("Connect")
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
@@ -445,7 +506,6 @@ struct ContentView: View {
                 }
             }
         }
-        .presentationDetents([.medium])
     }
 
     private func arm() async {

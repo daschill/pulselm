@@ -119,7 +119,7 @@ struct SessionSummary: Codable, Equatable, Sendable {
 /// HTTP client for the Pi launch monitor. iPhone is display-only (no camera / BLE / motion).
 @MainActor
 final class MonitorClient: ObservableObject {
-    static let defaultBaseURLString = "http://192.168.0.139:8080"
+    static let defaultBaseURLString = "http://192.168.0.139:18080"
     private static let baseURLDefaultsKey = "pulselm.baseURL"
 
     @Published var baseURLString: String {
@@ -148,7 +148,11 @@ final class MonitorClient: ObservableObject {
             self.baseURLString = baseURLString
         } else if let stored = UserDefaults.standard.string(forKey: Self.baseURLDefaultsKey),
                   !stored.isEmpty {
-            self.baseURLString = stored
+            if stored == "http://192.168.0.139:8080" {
+                self.baseURLString = Self.defaultBaseURLString
+            } else {
+                self.baseURLString = stored
+            }
         } else {
             self.baseURLString = Self.defaultBaseURLString
         }
@@ -230,12 +234,25 @@ final class MonitorClient: ObservableObject {
         return value
     }
 
+    static let bundledCourses: [CourseSummary] = [
+        CourseSummary(id: "1d930d4d-7beb-48e6-9346-f3db01b70172", name: "Bethpage Black", city: "Farmingdale", state: "NY", par: 71, type: "Municipal"),
+        CourseSummary(id: "babc6173-2c9c-44ae-bd72-b5a35d8dc211", name: "Bethpage Red", city: "Farmingdale", state: "NY", par: 70, type: "Municipal"),
+        CourseSummary(id: "40977ee8-33ee-4195-b6a2-99a4ca83c2bc", name: "Pebble Beach Golf Links", city: "Pebble Beach", state: "CA", par: 72, type: "Resort"),
+    ]
+
     func searchCourses(q: String = "") async throws -> [CourseSummary] {
         let path = q.isEmpty ? "/api/v1/courses" : "/api/v1/courses?q=\(q.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? q)"
-        let payload: CourseListPayload = try await get(path: path)
-        // featured payload nests full courses; map name
-        courseResults = payload.courses
-        return payload.courses
+        do {
+            let payload: CourseListPayload = try await get(path: path)
+            let rows = payload.courses.isEmpty ? Self.bundledCourses : payload.courses
+            courseResults = rows
+            lastError = nil
+            return rows
+        } catch {
+            courseResults = Self.bundledCourses
+            lastError = "Not connected to PulseLM at \(baseURLString). Showing featured courses; start the PC server to play."
+            return Self.bundledCourses
+        }
     }
 
     func fetchPractice(pin: Double = 250) async throws -> PracticePayload {
