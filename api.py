@@ -28,6 +28,11 @@ def create_app(
 ) -> Flask:
     app = Flask(__name__)
     CORS(app, resources={r"/*": {"origins": "*"}})
+    # Keep ShotResult field order from store.build_shot_result (not alpha-sorted).
+    try:
+        app.json.sort_keys = False
+    except Exception:
+        app.config["JSON_SORT_KEYS"] = False
     app.config["PULSELM_DEMO"] = bool(demo)
     app.config["PULSELM_SHOTS"] = Path(shots_dir) if shots_dir else store.SHOTS_DIR
     app.config["PULSELM_CAL"] = (

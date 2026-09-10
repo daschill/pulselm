@@ -39,6 +39,7 @@ def test_demo_health_and_latest(client):
     assert shot["hla_deg"] is None
     fixture = load_fixture_result()
     assert shot["ball_speed_mph"] == fixture["ball_speed_mph"]
+    assert list(shot.keys()) == list(SHOT_FIELDS)
 
 
 def test_demo_index_shows_speed(client):
@@ -108,6 +109,37 @@ def test_demo_never_imports_gpio():
     assert "RPi" not in sys.modules
     assert "RPi.GPIO" not in sys.modules
     assert "picamera2" not in sys.modules
+
+
+def test_calibrate_known_length_and_golf_ball(client):
+    known = client.post("/calibrate", json={"px_length": 100, "mm_length": 180})
+    assert known.status_code == 200
+    body = known.get_json()
+    assert body["ok"] is True
+    assert body["calibration"]["mm_per_px"] == pytest.approx(1.8)
+    ball = client.post("/calibrate", json={"diameter_px": 42.67 / 1.8})
+    assert ball.status_code == 200
+    assert ball.get_json()["ok"] is True
+    bad = client.post("/calibrate", json={"mm_per_px": 0})
+    assert bad.status_code == 400
+    assert bad.get_json()["ok"] is False
+
+
+def test_empty_shots_latest_is_shotresult_404(tmp_path: Path):
+    app = create_app(
+        demo=False,
+        shots_dir=tmp_path,
+        calibration_path=tmp_path / "calibration.json",
+    )
+    app.config["TESTING"] = True
+    with app.test_client() as c:
+        r = c.get("/shot/latest")
+    assert r.status_code == 404
+    body = r.get_json()
+    assert body["ok"] is False
+    assert body["schema"] == SCHEMA
+    assert body["error"] == "no shots"
+    assert body["hla_deg"] is None
 
 
 def test_live_arm_without_pi_libs_is_error_shotresult(tmp_path: Path):

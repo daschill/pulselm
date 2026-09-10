@@ -28,18 +28,36 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return p.parse_args(argv)
 
 
+def serve(app, host: str, port: int) -> None:
+    """Bind Flask. Default product bind is 0.0.0.0:8080 (Pi 3 / iPhone display)."""
+    try:
+        app.run(
+            host=host,
+            port=port,
+            debug=False,
+            threaded=True,
+            use_reloader=False,
+        )
+    except OSError as exc:
+        print(
+            f"PulseLM could not bind {host}:{port}: {exc}",
+            file=sys.stderr,
+        )
+        print(
+            "Default is 0.0.0.0:8080 for the Pi. If this workstation already "
+            "holds 8080 (Windows IP Helper portproxy is a common case), retry "
+            "with: python pulselm.py --demo --host 0.0.0.0 --port 18080",
+            file=sys.stderr,
+        )
+        raise SystemExit(1) from exc
+
+
 def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
     from api import HOST, PORT, create_app
 
     app = create_app(demo=args.demo)
-    app.run(
-        host=args.host or HOST,
-        port=args.port or PORT,
-        debug=False,
-        threaded=True,
-        use_reloader=False,
-    )
+    serve(app, args.host or HOST, args.port or PORT)
 
 
 if __name__ == "__main__":

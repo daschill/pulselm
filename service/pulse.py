@@ -101,14 +101,19 @@ def fire_dual_strobe(
     GPIO.output(TRIG_PIN, GPIO.LOW)
 
 
-def capture_dual_strobe_frame(camera: Optional[Any] = None) -> Any:
+def capture_dual_strobe_frame(
+    camera: Optional[Any] = None,
+    gpio: Optional[Any] = None,
+) -> Any:
     """Trigger OV9281 + dual IR strobe and return one frame.
 
     Not used by --demo. Requires picamera2 / libcamera on the Pi 3 CSI path
     (InnoMaker CAM-MIPIOV9281V2). Rolling-shutter sensors are forbidden.
+    ``gpio`` is injectable for tests; live capture imports RPi.GPIO lazily.
     """
-    GPIO = _require_gpio()
+    GPIO = gpio if gpio is not None else _require_gpio()
     setup_pins(GPIO)
+    own_camera = False
     try:
         if camera is None:
             from picamera2 import Picamera2  # type: ignore
@@ -121,14 +126,16 @@ def capture_dual_strobe_frame(camera: Optional[Any] = None) -> Any:
             camera.set_controls({"ExposureTime": MIN_EXPOSURE_US, "AnalogueGain": 1.0})
             camera.start()
             own_camera = True
-        else:
-            own_camera = False
-        # Request a frame, fire strobes during the global-shutter window.
+        # TRIG (GPIO15) starts the global-shutter window; two GPIO14 flashes
+        # land inside that exposure, then the frame is read out.
         fire_dual_strobe(GPIO)
         frame = camera.capture_array()
-        if own_camera:
-            camera.stop()
-            camera.close()
         return frame
     finally:
+        if own_camera and camera is not None:
+            try:
+                camera.stop()
+                camera.close()
+            except Exception:
+                pass
         GPIO.cleanup()

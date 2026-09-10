@@ -24,7 +24,7 @@ python pulselm.py --demo
 
 `--demo` serves `fixtures/sample_result.json`, writes `shots/shot_NNNNN/{raw.png,meta.json,result.json}`, and **does not use GPIO**.
 
-Flask listens on **0.0.0.0:8080** with CORS. Override with `--host` / `--port` if 8080 is already taken on the machine.
+Flask listens on **0.0.0.0:8080** with CORS (Pi 3; iPhone Safari is display only). Override with `--host` / `--port` if 8080 is already taken on a workstation (Windows IP Helper `portproxy` on 8080 is a known conflict; `--port 18080` works).
 
 | Method | Path | Notes |
 |--------|------|--------|

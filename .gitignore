@@ -15,3 +15,5 @@ Thumbs.db
 # Runtime captures from --demo /arm; keep the seeded fixture shot.
 shots/shot_0*/
 !shots/shot_00001/
+_verify/
+web_demo_*.png
