@@ -55,11 +55,19 @@ def _hole_state(course: dict[str, Any], hole_num: int) -> dict[str, Any]:
     }
 
 
-def start_round(course_id: str, shots_dir: Path, *, fetch=None) -> dict[str, Any]:
+def start_round(
+    course_id: str,
+    shots_dir: Path,
+    *,
+    fetch=None,
+    max_holes: int = 18,
+) -> dict[str, Any]:
     course = course_with_holes(course_id, fetch=fetch)
-    holes = course.get("holes") or []
+    holes = list(course.get("holes") or [])
     if not holes:
         raise ValueError("course has no holes")
+    n = max(1, min(int(max_holes), len(holes)))
+    holes = holes[:n]
     current = _hole_state(course, holes[0]["hole"])
     doc = {
         "ok": True,
@@ -72,6 +80,7 @@ def start_round(course_id: str, shots_dir: Path, *, fetch=None) -> dict[str, Any
         "attribution": course.get("attribution"),
         "license": course.get("license"),
         "holes": holes,
+        "max_holes": n,
         "scorecard": [],
         "current": current,
         "to_par": 0,
@@ -173,6 +182,7 @@ def public_view(doc: Optional[dict[str, Any]]) -> dict[str, Any]:
         "finished_hole": cur.get("finished"),
         "thru": doc.get("thru"),
         "to_par": doc.get("to_par"),
+        "max_holes": doc.get("max_holes") or len(doc.get("holes") or []),
         "scorecard": doc.get("scorecard") or [],
         "gimme_yd": GIMME_YD,
     }

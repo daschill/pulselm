@@ -123,7 +123,8 @@ def create_app(
         if not cid:
             return jsonify({"ok": False, "error": "course_id required"}), 400
         try:
-            doc = play_mod.start_round(str(cid), shots_root())
+            mh = body.get("holes") or body.get("max_holes") or 18
+            doc = play_mod.start_round(str(cid), shots_root(), max_holes=int(mh))
         except Exception as exc:
             return jsonify({"ok": False, "error": str(exc)}), 400
         return jsonify(play_mod.public_view(doc))

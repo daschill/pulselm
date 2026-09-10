@@ -177,7 +177,10 @@ final class MonitorClient: ObservableObject {
     }
 
     func startPlay(courseId: String) async throws -> PlayRound {
-        let value: PlayRound = try await post(path: "/api/v1/play/start", json: ["course_id": courseId])
+        let value: PlayRound = try await post(
+            path: "/api/v1/play/start",
+            json: ["course_id": courseId, "holes": "10"]
+        )
         play = value
         if let pin = value.remaining_yd ?? value.pin_yd {
             _ = try? await fetchPractice(pin: pin)
