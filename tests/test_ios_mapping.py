@@ -31,6 +31,7 @@ def test_ios_sources_bind_shotresult_fields():
         IOS_ROOT / "PulseLM" / "Mapping" / "ShotMapping.swift",
         IOS_ROOT / "PulseLM" / "Mapping" / "RangeLanding.swift",
         IOS_ROOT / "PulseLM" / "Views" / "RangeView.swift",
+        IOS_ROOT / "PulseLM" / "Views" / "Course3DView.swift",
         IOS_ROOT / "PulseLM" / "Views" / "ShotHUD.swift",
         IOS_ROOT / "PulseLM.xcodeproj" / "project.pbxproj",
     ]
@@ -71,5 +72,9 @@ def test_ios_sources_bind_shotresult_fields():
     assert "longest" in range_src
     assert "Smash" in range_src
     assert "dispersionRings" in range_src
+    three = (IOS_ROOT / "PulseLM" / "Views" / "Course3DView.swift").read_text(encoding="utf-8")
+    assert "SceneKit" in three
+    assert "SCNScene" in three
+    assert "fairways" in three
     assert "OsmHoleLayer" in range_src
     assert "fairways" in range_src

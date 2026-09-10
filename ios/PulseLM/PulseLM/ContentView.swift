@@ -13,6 +13,11 @@ struct ContentView: View {
                     header
                     ShotHUD(shot: client.latest, compact: true)
                     playBanner
+                    Course3DView(
+                        map: client.holeMap,
+                        shot: client.latest,
+                        remainingYd: client.play?.remaining_yd ?? client.play?.pin_yd ?? client.latest?.carry_yd_est
+                    )
                     RangeView(
                         shot: client.latest,
                         session: client.shots,
