@@ -31,6 +31,11 @@ struct PracticeTiles: Codable, Equatable, Sendable {
     var curve_yd: Double?
     var along_yd: Double?
     var offline_yd: Double?
+    var spin_axis_deg: Double?
+    var back_spin_rpm: Double?
+    var side_spin_rpm: Double?
+    var path_deg: Double?
+    var face_deg: Double?
 }
 
 struct PracticePayload: Codable, Equatable, Sendable {

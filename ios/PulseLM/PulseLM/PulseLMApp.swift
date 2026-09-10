@@ -6,7 +6,7 @@ struct PulseLMApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            AppShell()
                 .environmentObject(client)
                 .preferredColorScheme(.dark)
         }

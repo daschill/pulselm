@@ -71,7 +71,27 @@ def tiles_from_shot(shot: Mapping[str, Any], *, pin_yd: float = 250.0) -> dict[s
         "pin_yd": pin_yd,
         "dist_to_pin_yd": dist_to_pin_yd(land.get("along_yd"), land.get("offline_yd"), pin_yd),
         "curve_yd": land.get("offline_yd"),
+        "spin_axis_deg": shot.get("spin_axis_deg"),
+        "back_spin_rpm": _back_spin(shot.get("spin_rpm"), shot.get("spin_axis_deg")),
+        "side_spin_rpm": _side_spin(shot.get("spin_rpm"), shot.get("spin_axis_deg")),
+        "path_deg": shot.get("path_deg"),
+        "face_deg": shot.get("face_deg"),
+        "shot_id": shot.get("shot_id"),
     }
+
+
+def _back_spin(total: Optional[float], axis_deg: Optional[float]) -> Optional[float]:
+    if total is None:
+        return None
+    if axis_deg is None:
+        return float(total)
+    return float(total) * math.cos(math.radians(float(axis_deg)))
+
+
+def _side_spin(total: Optional[float], axis_deg: Optional[float]) -> Optional[float]:
+    if total is None or axis_deg is None:
+        return None
+    return float(total) * math.sin(math.radians(float(axis_deg)))
 
 
 def closest_to_pin(shots: list[Mapping[str, Any]], pin_yd: float) -> Optional[dict[str, Any]]:

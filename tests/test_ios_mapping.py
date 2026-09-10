@@ -26,6 +26,7 @@ def test_hud_speed_string_from_fixture():
 def test_ios_sources_bind_shotresult_fields():
     required = [
         IOS_ROOT / "PulseLM" / "PulseLMApp.swift",
+        IOS_ROOT / "PulseLM" / "AppShell.swift",
         IOS_ROOT / "PulseLM" / "ContentView.swift",
         IOS_ROOT / "PulseLM" / "Models" / "ShotResult.swift",
         IOS_ROOT / "PulseLM" / "Mapping" / "ShotMapping.swift",
@@ -72,6 +73,11 @@ def test_ios_sources_bind_shotresult_fields():
     assert "longest" in range_src
     assert "Smash" in range_src
     assert "dispersionRings" in range_src
+    shell = (IOS_ROOT / "PulseLM" / "AppShell.swift").read_text(encoding="utf-8")
+    assert "TabView" in shell
+    assert "PlayHubView" in shell
+    assert "ConnectHubView" in shell
+    assert "ShotsTableView" in shell
     cv = (IOS_ROOT / "PulseLM" / "ContentView.swift").read_text(encoding="utf-8")
     assert "dataTileColumn" in cv
     assert "minimapPanel" in cv

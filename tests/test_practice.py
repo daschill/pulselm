@@ -37,6 +37,24 @@ def test_tiles_dist_to_pin():
     assert tiles["offline_yd"] == 0.0
 
 
+def test_back_and_side_spin_from_axis():
+    from range_metrics import tiles_from_shot
+
+    shot = build_shot_result(
+        shot_id="shot_00002",
+        unix_ts=1.0,
+        ok=True,
+        ball_speed_mph=150.0,
+        vla_deg=12.0,
+        spin_rpm=3000.0,
+        spin_axis_deg=0.0,
+        carry_yd_est=240.0,
+    )
+    tiles = tiles_from_shot(shot, pin_yd=250.0)
+    assert tiles["back_spin_rpm"] == pytest.approx(3000.0)
+    assert tiles["side_spin_rpm"] == pytest.approx(0.0, abs=1e-6)
+
+
 def test_closest_and_longest():
     shots = []
     for i, carry in enumerate((180.0, 240.0, 210.0)):

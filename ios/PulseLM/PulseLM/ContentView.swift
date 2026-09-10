@@ -50,9 +50,6 @@ struct ContentView: View {
             }
             .task {
                 await client.refresh()
-                if client.health?.ok != true {
-                    showHostEditor = true
-                }
             }
             .refreshable {
                 await client.refresh()
