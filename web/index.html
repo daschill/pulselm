@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>PulseLM</title>
+  <style>
+    :root {
+      --bg: #07090d;
+      --panel: #12161e;
+      --ink: #f4f7fb;
+      --muted: #8b95a7;
+      --accent: #3dff9a;
+      --line: #1e2532;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, "SF Pro Display", sans-serif;
+    }
+    main {
+      max-width: 42rem;
+      margin: 0 auto;
+      padding: 1.25rem 1.25rem 3rem;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 1.25rem;
+    }
+    h1 {
+      font-size: 1.05rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      font-weight: 650;
+      margin: 0;
+    }
+    .tag {
+      color: var(--muted);
+      font-size: 0.75rem;
+    }
+    .speed-panel {
+      background: radial-gradient(120% 80% at 50% 0%, #1a2433 0%, var(--panel) 55%);
+      border: 1px solid var(--line);
+      border-radius: 1.25rem;
+      padding: 1.5rem 1.25rem 1.25rem;
+      text-align: center;
+    }
+    .label {
+      color: var(--muted);
+      font-size: 0.8rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+    #ball-speed, .speed-number {
+      font-variant-numeric: tabular-nums;
+      font-size: clamp(4.2rem, 18vw, 7rem);
+      font-weight: 720;
+      line-height: 1;
+      color: var(--accent);
+      margin: 0.35rem 0 0.15rem;
+    }
+    .unit { color: var(--muted); font-size: 1.1rem; letter-spacing: 0.12em; }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0.75rem;
+      margin-top: 1.25rem;
+    }
+    .stat {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 0.9rem;
+      padding: 0.85rem 0.7rem;
+      text-align: center;
+    }
+    .stat b {
+      display: block;
+      font-size: 1.45rem;
+      margin-top: 0.25rem;
+      font-variant-numeric: tabular-nums;
+    }
+    button {
+      width: 100%;
+      margin-top: 1.25rem;
+      background: var(--accent);
+      color: #062214;
+      border: 0;
+      border-radius: 0.9rem;
+      padding: 0.95rem;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    button:active { transform: scale(0.99); }
+    .meta {
+      margin-top: 1rem;
+      color: var(--muted);
+      font-size: 0.8rem;
+      text-align: center;
+    }
+    img.raw {
+      width: 100%;
+      margin-top: 1rem;
+      border-radius: 0.9rem;
+      border: 1px solid var(--line);
+      background: #000;
+      min-height: 8rem;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>PulseLM</h1>
+      <div class="tag">indoor dual-strobe · iPhone display</div>
+    </header>
+    <section class="speed-panel" data-shot-id="{{SHOT_ID}}">
+      <div class="label">Ball speed</div>
+      <div id="ball-speed" class="speed-number">{{BALL_SPEED_MPH}}</div>
+      <div class="unit">MPH</div>
+    </section>
+    <section class="grid">
+      <div class="stat"><span class="label">VLA</span><b id="vla">{{VLA_DEG}}</b></div>
+      <div class="stat"><span class="label">Carry</span><b id="carry">{{CARRY_YD}}</b></div>
+      <div class="stat"><span class="label">Shot</span><b id="shot-id">{{SHOT_ID}}</b></div>
+    </section>
+    <button id="arm" type="button">Arm</button>
+    <img class="raw" id="raw" alt="dual-strobe capture">
+    <p class="meta" id="status">Week 1 · HLA / spin / club null · pulse gap 0.002 s</p>
+  </main>
+  <script>
+    const DEMO = {{DEMO}};
+    function fmt(n, digits) {
+      if (n === null || n === undefined || n === "") return "—";
+      const x = Number(n);
+      if (!Number.isFinite(x)) return "—";
+      return x.toFixed(digits);
+    }
+    function render(shot) {
+      if (!shot) return;
+      const speed = fmt(shot.ball_speed_mph, 2);
+      document.getElementById("ball-speed").textContent = speed;
+      document.getElementById("vla").textContent = fmt(shot.vla_deg, 1);
+      document.getElementById("carry").textContent = fmt(shot.carry_yd_est, 0);
+      document.getElementById("shot-id").textContent = shot.shot_id || "—";
+      document.getElementById("status").textContent =
+        (shot.ok ? "ok" : (shot.error || "error")) +
+        " · pulse_gap_s " + shot.pulse_gap_s +
+        (DEMO ? " · demo" : "");
+      if (shot.shot_id) {
+        document.getElementById("raw").src = "/shot/" + shot.shot_id + "/raw.png?t=" + Date.now();
+      }
+    }
+    async function loadLatest() {
+      const r = await fetch("/shot/latest");
+      if (!r.ok) return;
+      render(await r.json());
+    }
+    document.getElementById("arm").addEventListener("click", async () => {
+      const r = await fetch("/arm", { method: "POST" });
+      render(await r.json());
+    });
+    loadLatest();
+  </script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "schema": "pulselm.shot.v1",
+  "shot_id": "shot_00001",
+  "unix_ts": 1730000000.0,
+  "ok": true,
+  "error": null,
+  "ball_speed_mph": 159.1608,
+  "vla_deg": 18.4349,
+  "hla_deg": null,
+  "spin_rpm": null,
+  "spin_axis_deg": null,
+  "club_speed_mph": null,
+  "face_deg": null,
+  "path_deg": null,
+  "carry_yd_est": 265.75,
+  "total_yd_est": 284.35,
+  "confidence": 0.94,
+  "ghost_px": 79.0569,
+  "pulse_gap_s": 0.002
+}

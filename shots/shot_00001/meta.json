@@ -1,0 +1,7 @@
+{
+  "demo": true,
+  "source": "fixtures/sample_result.json",
+  "unix_ts": 1730000000.0,
+  "shot_id": "shot_00001",
+  "schema": "pulselm.shot.v1"
+}

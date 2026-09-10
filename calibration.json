@@ -1,0 +1,6 @@
+{
+  "mm_per_px": 1.8,
+  "sensor": "OV9281",
+  "camera": "InnoMaker CAM-MIPIOV9281V2",
+  "method": "direct"
+}

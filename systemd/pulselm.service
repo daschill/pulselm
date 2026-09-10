@@ -1,0 +1,19 @@
+[Unit]
+Description=PulseLM indoor dual-strobe launch monitor (Pi 3 + OV9281)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+WorkingDirectory=/home/pi/pulselm
+Environment=PYTHONUNBUFFERED=1
+# Live capture: GPIO14 strobe, GPIO15 TRIG, InnoMaker OV9281 on CSI.
+# Do not pass --demo on the Pi. iPhone Safari is display only at :8080.
+ExecStart=/usr/bin/python3 /home/pi/pulselm/pulselm.py --host 0.0.0.0 --port 8080
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
