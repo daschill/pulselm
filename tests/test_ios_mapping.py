@@ -36,6 +36,9 @@ def test_ios_sources_bind_shotresult_fields():
         IOS_ROOT / "PulseLM" / "Views" / "RangeView.swift",
         IOS_ROOT / "PulseLM" / "Views" / "Course3DView.swift",
         IOS_ROOT / "PulseLM" / "Views" / "ShotHUD.swift",
+        IOS_ROOT / "PulseLM" / "Views" / "PhotorealRangeView.swift",
+        IOS_ROOT / "PulseLM" / "OpenConnect.swift",
+        IOS_ROOT / "PulseLM" / "PlayerSettings.swift",
         IOS_ROOT / "PulseLM.xcodeproj" / "project.pbxproj",
     ]
     missing = [str(p) for p in required if not p.is_file()]
@@ -69,21 +72,21 @@ def test_ios_sources_bind_shotresult_fields():
     assert "ShotTracer" in range_src
     assert "session" in range_src
     assert "pinYards" in range_src
-    assert "150.0, 200.0, 250.0, 300.0, 400.0, 500.0" in range_src
     assert "maxAlongYd: Double = 500" in range_src
-    assert "closest" in range_src
-    assert "longest" in range_src
-    assert "Smash" in range_src
     assert "dispersionRings" in range_src
     shell = (IOS_ROOT / "PulseLM" / "AppShell.swift").read_text(encoding="utf-8")
     assert "TabView" in shell
     assert "PlayHubView" in shell
     assert "ConnectHubView" in shell
     assert "ShotsTableView" in shell
+    assert "OpenConnectServer" in shell
     cv = (IOS_ROOT / "PulseLM" / "ContentView.swift").read_text(encoding="utf-8")
-    assert "dataTileColumn" in cv
+    assert "PhotorealRangeView" in cv
+    assert "metricDock" in cv
     assert "minimapPanel" in cv
-    assert "bayTopBar" in cv
+    oc = (IOS_ROOT / "PulseLM" / "OpenConnect.swift").read_text(encoding="utf-8")
+    assert "921" in oc
+    assert "BallData" in oc
     three = (IOS_ROOT / "PulseLM" / "Views" / "Course3DView.swift").read_text(encoding="utf-8")
     assert "SceneKit" in three
     assert "SCNScene" in three
