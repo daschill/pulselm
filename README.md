@@ -1,75 +1,46 @@
 # PulseLM
 
-Indoor **budget** launch monitor: **4× OV9281 global-shutter + 24 GHz CW radar** (Camarray + dual-strobe; Pi 5/CM4 for four cameras). The **iPhone is display only**. Single-cam `--demo` still runs without radar.
-
-**Courses:** open scorecards from [OpenGolfAPI](https://opengolfapi.org) (ODbL). `GET /api/v1/courses?q=bethpage` then `GET /api/v1/courses/<id>` for hole yardages as range pins. See [docs/COURSES.md](docs/COURSES.md). We do **not** ship GSPro/E6 3D meshes.
-
-Have a **Garmin Approach R10**? See [docs/R10.md](docs/R10.md). `python pulselm.py --r10` listens on OpenConnect **TCP 921** and `POST /api/v1/r10` so the iOS range shows R10 shots.
-
-See [docs/BUDGET.md](docs/BUDGET.md). Pi cameras measure speed/VLA; the R10 fills HLA/spin/club when connected.
-
-Two 2 µs 850 nm flashes, 2000 µs apart, in one **OV9281 global-shutter** exposure produce two ball dots. Ball speed is `px_dist * mm_per_px / 0.002` s, converted to mph. Vertical launch angle is `atan2`. Carry/total are derived from those launch conditions. HLA is estimated only when blob-size photometry plus a calibrated `camera_distance_mm` exist; otherwise HLA, spin, and club stay JSON `null` (never `0`).
-
-## Hardware
-
-- Camera: InnoMaker **CAM-MIPIOV9281V2** (OV9281 global shutter MIPI) on Pi CSI.
-- GPIO14 → 100 Ω → IRLZ44N gate, 10 kΩ pulldown. Strobe.
-- GPIO15 → camera TRIG.
-- 850 nm LEDs on a **separate 12 V** supply. **Never** drive LEDs from Pi 5 V.
-
-See [docs/wiring.md](docs/wiring.md).
-
-Not this product: rolling shutter, OS04C10, ESP32-CAM, Pi Cam v2/v3, iPhone as sensor, BLE, Camera2, radar.
-
-## Run (this host / CI)
-
-```text
-pip install -r requirements.txt
-python pulselm.py --demo
-```
-
-`--demo` serves `fixtures/sample_result.json`, writes `shots/shot_NNNNN/{raw.png,meta.json,result.json}`, and **does not use GPIO**.
-
-Flask listens on **0.0.0.0:8080** with CORS (Pi 3; iPhone Safari is display only). Override with `--host` / `--port` if 8080 is already taken on a workstation (Windows IP Helper `portproxy` on 8080 is a known conflict; `--port 18080` works).
-
-| Method | Path | Notes |
-|--------|------|--------|
-| GET | `/` | Display + driving range; includes ball speed |
-| GET | `/api/v1/health` | Health |
-| GET | `/api/v1/range` | Landing from latest ShotResult (`along_yd`, `offline_yd`) |
-| GET | `/shot/latest` | ShotResult JSON |
-| GET | `/shot/<id>` | ShotResult JSON |
-| GET | `/shots` | List |
-| GET | `/shot/<id>/raw.png` | Capture |
-| POST | `/arm` | Capture (demo: clone fixture) |
-| POST | `/calibrate` | `{"mm_per_px": 1.8}` or known length |
-
-On the Pi 3, omit `--demo` and install the unit:
-
-```text
-sudo cp systemd/pulselm.service /etc/systemd/system/pulselm.service
-sudo systemctl daemon-reload
-sudo systemctl enable --now pulselm.service
-```
-
-Point the native iOS app (`ios/PulseLM`) or Safari at `http://<pi-ip>:8080` (display only). Enable the sensor with `dtoverlay=ov9281` in `/boot/config.txt` or `/boot/firmware/config.txt` (see [docs/wiring.md](docs/wiring.md)).
+Indoor golf launch monitor + native **iOS** sim. The iPhone is the app: photoreal 500-yard range, ball flight, HIT practice, and **GSPro OpenConnect :921** so normal launch monitors can send shots here.
 
 ## iOS app
 
-Open `ios/PulseLM/PulseLM.xcodeproj` on a Mac. Bundle id `app.pulselm.PulseLM`. The app GETs `/shot/latest`, POSTs `/arm`, and maps `carry_yd_est` + `hla_deg` onto a driving range (`RangeLanding.swift`, same formula as `range_landing.py`). Null HLA lands on the target line. No AVCapture / BLE / radar.
+Open `ios/PulseLM/PulseLM.xcodeproj` on a Mac (team `3H3PMHR6RY`, bundle `app.pulselm.PulseLM`).
 
-## Workflow
+- **Range** — first-person 500 yd range, tracer, HIT
+- **Play** — OpenGolfAPI course search (scorecards / pins, not licensed GSPro/E6 meshes)
+- **Shots** — last shot + session
+- **Connect** — OpenConnect listener + Garmin Approach R10 Bluetooth
+- First launch: settings walkthrough (name, units, club, pin, monitor)
 
-`.grok/workflows/cheap-hardware-launch-monitor.rhai` — survey specialists + two-vote adversarial verify. Smoke-check with `validate_only` and `args.root`.
+### Launch monitors
 
-## ShotResult (`pulselm.shot.v1`)
+PulseLM speaks **GSPro OpenConnect v1** on **TCP 921**. In the monitor (or its PC app) pick GSPro / OpenAPI / OpenConnect, server = the iPhone Wi-Fi IP shown in Connect.
 
-`shot_id`, `unix_ts`, `ok`, `error`, `ball_speed_mph`, `vla_deg`, `hla_deg`, `spin_rpm`, `spin_axis_deg`, `club_speed_mph`, `face_deg`, `path_deg`, `carry_yd_est`, `total_yd_est`, `confidence`, `ghost_px`, `pulse_gap_s`.
+Works with anything that already talks OpenConnect, including:
 
-Missing values are JSON **`null`**, not `0`. `pulse_gap_s` is `0.002`. Spin, spin axis, club speed, face, and path stay `null` on this hardware. HLA is `null` unless `camera_distance_mm` plus two blob diameters are supplied.
+Garmin R10 / R50, Rapsodo MLM2PRO, Foresight GC2/GC3/GCQuad, Bushnell Launch Pro, Uneekor EYE XO/MINI/QED, SkyTrak / SkyTrak+, FlightScope Mevo+, Square, Full Swing KIT, Trackman (sim), ProTee VX, GolfJoy.
+
+**Garmin Approach R10** can also pair over Bluetooth on the phone (no extra software). HIT still works with no hardware.
+
+## Optional Pi hardware
+
+Budget path: **4× OV9281 global-shutter + 24 GHz CW radar** (Camarray + dual-strobe). See [docs/BUDGET.md](docs/BUDGET.md) and [docs/wiring.md](docs/wiring.md).
+
+```text
+pip install -r requirements.txt
+python pulselm.py --demo --r10
+```
+
+`--demo` serves `fixtures/sample_result.json` and does not use GPIO. Flask default `0.0.0.0:8080` (`--port 18080` if 8080 is taken). `--r10` also listens OpenConnect on **TCP 921** and `POST /api/v1/r10`.
+
+Missing values are JSON **`null`**, not `0`.
 
 ## Tests
 
 ```text
 python -m pytest tests -q
 ```
+
+## License of courses
+
+Hole maps/scorecards from [OpenGolfAPI](https://opengolfapi.org) (ODbL). We do **not** redistribute GSPro/E6 3D meshes.

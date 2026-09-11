@@ -19,3 +19,10 @@ _verify/
 web_demo_*.png
 courses_cache/
 _osm_probe.py
+ios/PulseLM/tmp-range-assets/
+ios/pulselm-ios-sync.tar
+ios/PulseLM/sim-*.png
+ios/PulseLM/PulseLM.xcodeproj/xcuserdata/
+ios/PulseLM/PulseLM.xcodeproj/project.xcworkspace/xcuserdata/
+DerivedData/
+.idea/

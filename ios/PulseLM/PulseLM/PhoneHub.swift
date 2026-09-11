@@ -50,6 +50,66 @@ final class PhoneHub {
         return ingest(shot)
     }
 
+    func ingestOpenConnect(_ payload: [String: Any]) -> ShotResult? {
+        guard let fields = OpenConnectParser.mappedFields(payload) else { return nil }
+        return ingestLaunch(
+            ballMph: fields["ball_speed_mph"] ?? nil,
+            vla: fields["vla_deg"] ?? nil,
+            hla: fields["hla_deg"] ?? nil,
+            spin: fields["spin_rpm"] ?? nil,
+            axis: fields["spin_axis_deg"] ?? nil,
+            clubMph: fields["club_speed_mph"] ?? nil,
+            face: fields["face_deg"] ?? nil,
+            path: fields["path_deg"] ?? nil,
+            carry: fields["carry_yd_est"] ?? nil,
+            total: fields["total_yd_est"] ?? nil
+        )
+    }
+
+    func ingestLaunch(
+        ballMph: Double?,
+        vla: Double?,
+        hla: Double?,
+        spin: Double?,
+        axis: Double?,
+        clubMph: Double?,
+        face: Double?,
+        path: Double?,
+        carry: Double?,
+        total: Double?
+    ) -> ShotResult? {
+        guard let ballMph else { return nil }
+        var carryYd = carry
+        var totalYd = total
+        if carryYd == nil, let vla {
+            let est = OpenConnectParser.estimateCarry(speedMph: ballMph, vla: vla)
+            carryYd = est.0
+            totalYd = est.1
+        }
+        let shot = ShotResult(
+            schema: "pulselm.shot.v1",
+            shot_id: String(format: "shot_%05d", shotSerial),
+            unix_ts: Date().timeIntervalSince1970,
+            ok: true,
+            error: nil,
+            ball_speed_mph: ballMph,
+            vla_deg: vla,
+            hla_deg: hla,
+            spin_rpm: spin,
+            spin_axis_deg: axis,
+            club_speed_mph: clubMph,
+            face_deg: face,
+            path_deg: path,
+            carry_yd_est: carryYd,
+            total_yd_est: totalYd ?? carryYd.map { $0 * 1.08 },
+            confidence: 0.9,
+            ghost_px: nil,
+            pulse_gap_s: 0.002
+        )
+        shotSerial += 1
+        return ingest(shot)
+    }
+
     func ingestR10(ballMph: Double, vla: Double, hla: Double, spin: Double, axis: Double, clubMph: Double?, face: Double?, path: Double?) -> ShotResult {
         let simCarry: Double = {
             let v = ballMph * 0.44704

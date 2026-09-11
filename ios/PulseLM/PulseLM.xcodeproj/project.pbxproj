@@ -19,6 +19,12 @@
 		08A11A00000000000000002B /* AppShell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08A11A00000000000000001C /* AppShell.swift */; };
 		08A11A00000000000000002C /* PhoneHub.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08A11A00000000000000001D /* PhoneHub.swift */; };
 		08A11A00000000000000002D /* R10Bluetooth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08A11A00000000000000001E /* R10Bluetooth.swift */; };
+		08A11A00000000000000003B /* PhotorealRangeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08A11A00000000000000001F /* PhotorealRangeView.swift */; };
+		08A11A00000000000000003C /* PhotorealRangeWorld.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08A11A00000000000000003A /* PhotorealRangeWorld.swift */; };
+		08A11A00000000000000003E /* PulseTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08A11A00000000000000003D /* PulseTheme.swift */; };
+		08A11A000000000000000046 /* PlayerSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08A11A00000000000000003F /* PlayerSettings.swift */; };
+		08A11A000000000000000048 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08A11A000000000000000047 /* OnboardingView.swift */; };
+		08A11A00000000000000004A /* OpenConnect.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08A11A000000000000000049 /* OpenConnect.swift */; };
 		08A11A000000000000000028 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 08A11A000000000000000019 /* Assets.xcassets */; };
 		08A11A000000000000000029 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 08A11A00000000000000001A /* Preview Assets.xcassets */; };
 /* End PBXBuildFile section */
@@ -37,6 +43,12 @@
 		08A11A00000000000000001C /* AppShell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppShell.swift; sourceTree = "<group>"; };
 		08A11A00000000000000001D /* PhoneHub.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneHub.swift; sourceTree = "<group>"; };
 		08A11A00000000000000001E /* R10Bluetooth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = R10Bluetooth.swift; sourceTree = "<group>"; };
+		08A11A00000000000000001F /* PhotorealRangeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotorealRangeView.swift; sourceTree = "<group>"; };
+		08A11A00000000000000003A /* PhotorealRangeWorld.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotorealRangeWorld.swift; sourceTree = "<group>"; };
+		08A11A00000000000000003D /* PulseTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PulseTheme.swift; sourceTree = "<group>"; };
+		08A11A00000000000000003F /* PlayerSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerSettings.swift; sourceTree = "<group>"; };
+		08A11A000000000000000047 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		08A11A000000000000000049 /* OpenConnect.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenConnect.swift; sourceTree = "<group>"; };
 		08A11A000000000000000018 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		08A11A000000000000000019 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		08A11A00000000000000001A /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
@@ -69,6 +81,9 @@
 				08A11A00000000000000001D /* PhoneHub.swift */,
 				08A11A00000000000000001E /* R10Bluetooth.swift */,
 				08A11A000000000000000011 /* ContentView.swift */,
+				08A11A00000000000000003D /* PulseTheme.swift */,
+				08A11A00000000000000003F /* PlayerSettings.swift */,
+				08A11A000000000000000049 /* OpenConnect.swift */,
 				08A11A000000000000000032 /* Models */,
 				08A11A000000000000000033 /* Mapping */,
 				08A11A000000000000000034 /* Networking */,
@@ -119,6 +134,9 @@
 				08A11A000000000000000016 /* RangeView.swift */,
 				08A11A000000000000000017 /* ShotHUD.swift */,
 				08A11A00000000000000001B /* Course3DView.swift */,
+				08A11A00000000000000001F /* PhotorealRangeView.swift */,
+				08A11A00000000000000003A /* PhotorealRangeWorld.swift */,
+				08A11A000000000000000047 /* OnboardingView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -213,6 +231,12 @@
 				08A11A00000000000000002B /* AppShell.swift in Sources */,
 				08A11A00000000000000002C /* PhoneHub.swift in Sources */,
 				08A11A00000000000000002D /* R10Bluetooth.swift in Sources */,
+				08A11A00000000000000003B /* PhotorealRangeView.swift in Sources */,
+				08A11A00000000000000003C /* PhotorealRangeWorld.swift in Sources */,
+				08A11A00000000000000003E /* PulseTheme.swift in Sources */,
+				08A11A000000000000000046 /* PlayerSettings.swift in Sources */,
+				08A11A000000000000000048 /* OnboardingView.swift in Sources */,
+				08A11A00000000000000004A /* OpenConnect.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -357,6 +381,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				DEVELOPMENT_TEAM = 3H3PMHR6RY;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = app.pulselm.PulseLM;
 				PRODUCT_NAME = PulseLM;
@@ -387,6 +412,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				DEVELOPMENT_TEAM = 3H3PMHR6RY;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = app.pulselm.PulseLM;
 				PRODUCT_NAME = PulseLM;

@@ -215,9 +215,17 @@ struct RangeView: View {
             .overlay {
                 GeometryReader { geo in
                     ZStack {
-                        RangeScenery(pinYards: pinYards)
-                        if let holeMap {
-                            OsmHoleLayer(map: holeMap)
+                        Image("RangeAerial")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: geo.size.width, height: geo.size.height)
+                            .clipped()
+                            .allowsHitTesting(false)
+                        if !minimap {
+                            RangeScenery(pinYards: pinYards)
+                            if let holeMap {
+                                OsmHoleLayer(map: holeMap)
+                            }
                         }
                         sessionDots(size: geo.size)
                         dispersionRings(size: geo.size)
@@ -430,95 +438,10 @@ private struct RangeScenery: View {
 
     var body: some View {
         Canvas { context, size in
-            drawSky(context: &context, size: size)
-            drawHills(context: &context, size: size)
-            drawRoughAndFairway(context: &context, size: size)
-            drawBunkers(context: &context, size: size)
             drawGrid(context: &context, size: size)
             drawTargetLine(context: &context, size: size)
             drawMarkers(context: &context, size: size)
             drawFlags(context: &context, size: size)
-            drawTrees(context: &context, size: size)
-            drawTee(context: &context, size: size)
-        }
-    }
-
-    private func drawSky(context: inout GraphicsContext, size: CGSize) {
-        let sky = Path(CGRect(origin: .zero, size: size))
-        context.fill(sky, with: .linearGradient(
-            Gradient(colors: [
-                Color(red: 0.30, green: 0.58, blue: 0.88),
-                Color(red: 0.62, green: 0.82, blue: 0.95),
-                Color(red: 0.78, green: 0.90, blue: 0.72),
-            ]),
-            startPoint: CGPoint(x: size.width / 2, y: 0),
-            endPoint: CGPoint(x: size.width / 2, y: size.height * 0.42)
-        ))
-        let sun = Path(ellipseIn: CGRect(x: size.width * 0.78, y: 10, width: 28, height: 28))
-        context.fill(sun, with: .color(Color(red: 1.0, green: 0.92, blue: 0.55).opacity(0.9)))
-    }
-
-    private func drawHills(context: inout GraphicsContext, size: CGSize) {
-        var hills = Path()
-        hills.move(to: CGPoint(x: 0, y: RangeLayout.topInset + 18))
-        hills.addQuadCurve(
-            to: CGPoint(x: size.width, y: RangeLayout.topInset + 22),
-            control: CGPoint(x: size.width * 0.5, y: 8)
-        )
-        hills.addLine(to: CGPoint(x: size.width, y: size.height))
-        hills.addLine(to: CGPoint(x: 0, y: size.height))
-        hills.closeSubpath()
-        context.fill(hills, with: .color(Color(red: 0.10, green: 0.28, blue: 0.12)))
-    }
-
-    private func drawRoughAndFairway(context: inout GraphicsContext, size: CGSize) {
-        let cx = size.width / 2
-        var rough = Path()
-        let rL = RangeLayout.point(along: 0, offline: -48, size: size)
-        let rR = RangeLayout.point(along: 0, offline: 48, size: size)
-        let rFarL = RangeLayout.point(along: 500, offline: -48, size: size)
-        let rFarR = RangeLayout.point(along: 500, offline: 48, size: size)
-        rough.move(to: CGPoint(x: 0, y: size.height))
-        rough.addLine(to: CGPoint(x: size.width, y: size.height))
-        rough.addLine(to: rFarR)
-        rough.addLine(to: rFarL)
-        rough.closeSubpath()
-        context.fill(rough, with: .color(Color(red: 0.13, green: 0.34, blue: 0.14)))
-
-        var fairway = Path()
-        let teeHalf = RangeLayout.fairwayHalfWidth(along: 0, size: size)
-        let farHalf = RangeLayout.fairwayHalfWidth(along: 500, size: size)
-        let bottom = RangeLayout.point(along: 0, offline: 0, size: size).y
-        let top = RangeLayout.point(along: 500, offline: 0, size: size).y
-        fairway.move(to: CGPoint(x: cx - teeHalf, y: bottom))
-        fairway.addLine(to: CGPoint(x: cx + teeHalf, y: bottom))
-        fairway.addLine(to: CGPoint(x: cx + farHalf, y: top))
-        fairway.addLine(to: CGPoint(x: cx - farHalf, y: top))
-        fairway.closeSubpath()
-        context.fill(fairway, with: .linearGradient(
-            Gradient(colors: [
-                Color(red: 0.32, green: 0.66, blue: 0.28),
-                Color(red: 0.48, green: 0.78, blue: 0.36),
-            ]),
-            startPoint: CGPoint(x: cx, y: bottom),
-            endPoint: CGPoint(x: cx, y: top)
-        ))
-        _ = (rL, rR, rFarL, rFarR)
-    }
-
-    private func drawBunkers(context: inout GraphicsContext, size: CGSize) {
-        let spots: [(Double, Double, CGFloat, CGFloat)] = [
-            (118, -18, 22, 8),
-            (185, 16, 18, 7),
-            (260, -12, 16, 6),
-            (340, 20, 14, 5),
-            (420, -14, 12, 4),
-        ]
-        for (along, off, w, h) in spots {
-            let p = RangeLayout.point(along: along, offline: off, size: size)
-            let scale = 0.45 + 0.55 * (1 - RangeLayout.depth(along))
-            let rect = CGRect(x: p.x - w * scale, y: p.y - h * scale * 0.4, width: w * 2 * scale, height: h * 2 * scale)
-            context.fill(Path(ellipseIn: rect), with: .color(Color(red: 0.83, green: 0.72, blue: 0.42)))
         }
     }
 
@@ -572,34 +495,6 @@ private struct RangeScenery: View {
         let green = RangeLayout.point(along: pinYards, offline: 0, size: size)
         let gRect = CGRect(x: green.x - 16, y: green.y - 6, width: 32, height: 12)
         context.fill(Path(ellipseIn: gRect), with: .color(Color(red: 0.22, green: 0.55, blue: 0.22).opacity(0.85)))
-    }
-
-    private func drawTrees(context: inout GraphicsContext, size: CGSize) {
-        let trees: [(Double, Double, CGFloat)] = [
-            (40, -42, 18), (90, 44, 16), (140, -46, 20), (190, 48, 14),
-            (250, -44, 16), (320, 42, 12), (390, -46, 14), (460, 40, 11),
-        ]
-        for (along, off, h) in trees {
-            let p = RangeLayout.point(along: along, offline: off, size: size)
-            let trunk = Path(CGRect(x: p.x - 1.5, y: p.y - h * 0.25, width: 3, height: h * 0.3))
-            context.fill(trunk, with: .color(Color(red: 0.28, green: 0.16, blue: 0.08)))
-            var canopy = Path()
-            canopy.move(to: CGPoint(x: p.x, y: p.y - h))
-            canopy.addLine(to: CGPoint(x: p.x + h * 0.38, y: p.y - h * 0.2))
-            canopy.addLine(to: CGPoint(x: p.x - h * 0.38, y: p.y - h * 0.2))
-            canopy.closeSubpath()
-            context.fill(canopy, with: .color(Color(red: 0.08, green: 0.28, blue: 0.12)))
-        }
-    }
-
-    private func drawTee(context: inout GraphicsContext, size: CGSize) {
-        let tee = RangeLayout.point(along: 0, offline: 0, size: size)
-        let mat = CGRect(x: tee.x - 16, y: tee.y - 6, width: 32, height: 12)
-        context.fill(RoundedRectangle(cornerRadius: 2).path(in: mat), with: .color(Color(red: 0.22, green: 0.18, blue: 0.12)))
-        context.fill(
-            Path(ellipseIn: CGRect(x: tee.x - 5, y: tee.y - 5, width: 10, height: 8)),
-            with: .color(Color(red: 0.85, green: 0.82, blue: 0.72))
-        )
     }
 }
 

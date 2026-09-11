@@ -3,10 +3,18 @@ import Foundation
 enum ShotMapping {
     static let missing = "—"
 
-    /// nil → "—", else two decimal places (159.1608 → "159.16").
+    static var usesMetric: Bool {
+        UserDefaults.standard.string(forKey: "pulselm.player.units") == UnitSystem.metric.rawValue
+    }
+
+    static var speedUnit: String { usesMetric ? "kph" : "mph" }
+    static var distUnit: String { usesMetric ? "m" : "yd" }
+
+    /// nil → "—", else converted to the player's unit system.
     static func speedString(_ mph: Double?) -> String {
         guard let mph else { return missing }
-        return String(format: "%.2f", mph)
+        let value = usesMetric ? mph * 1.60934 : mph
+        return String(format: "%.1f", value)
     }
 
     /// nil → "—", else one decimal (shipped HUD).
@@ -16,7 +24,9 @@ enum ShotMapping {
     }
 
     static func carryString(_ yards: Double?) -> String {
-        format(yards, decimals: 0)
+        guard let yards else { return missing }
+        let value = usesMetric ? yards * 0.9144 : yards
+        return format(value, decimals: 0)
     }
 
     static func metricString(_ value: Double?, decimals: Int) -> String {

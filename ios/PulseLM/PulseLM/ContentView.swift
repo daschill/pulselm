@@ -2,40 +2,47 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject private var client: MonitorClient
+    @EnvironmentObject private var settings: PlayerSettings
     @State private var showHostEditor = false
     @State private var showCourses = false
     @State private var showScorecard = false
     @State private var courseQuery = ""
+    @State private var pinYards: Double = PlayerSettings.shared.defaultPinYd
+    @State private var cameraMode: RangeCameraMode = .auto
 
     var body: some View {
         NavigationStack {
             ZStack {
                 Color.black.ignoresSafeArea()
-                Course3DView(
-                    map: client.holeMap,
+                PhotorealRangeView(
                     shot: client.latest,
-                    remainingYd: client.play?.remaining_yd ?? client.play?.pin_yd ?? client.latest?.carry_yd_est
+                    session: client.shots,
+                    pinYards: pinYards,
+                    cameraMode: cameraMode,
+                    apexYd: client.practice?.tiles?.apex_yd,
+                    hangTimeS: client.practice?.tiles?.hang_time_s,
+                    totalYd: client.practice?.tiles?.total_yd_est
                 )
                 .ignoresSafeArea()
-                LinearGradient(
-                    colors: [Color.black.opacity(0.55), .clear, .clear, Color.black.opacity(0.65)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea()
-                .allowsHitTesting(false)
                 VStack(spacing: 0) {
-                    bayTopBar
-                    HStack(alignment: .top, spacing: 8) {
-                        dataTileColumn
+                    rangeTopBar
+                    HStack(alignment: .top) {
                         Spacer(minLength: 0)
-                        minimapPanel
+                        rangeSideRail
                     }
-                    .padding(.horizontal, 10)
-                    Spacer()
-                    bayBottomBar
+                    .padding(.horizontal, 12)
+                    Spacer(minLength: 0)
+                    rangeBottomDock
                 }
-                .padding(.bottom, 8)
+                .padding(.bottom, 6)
+            }
+            .onChange(of: client.play?.remaining_yd) { _, new in
+                if let new { pinYards = new }
+            }
+            .onChange(of: client.gameMode) { _, mode in
+                if mode == "random" {
+                    pinYards = [150, 200, 250, 300, 400].randomElement() ?? 250
+                }
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(.hidden, for: .navigationBar)
@@ -50,6 +57,10 @@ struct ContentView: View {
             }
             .task {
                 await client.refresh()
+                if ProcessInfo.processInfo.environment["PULSELM_AUTOHIT"] == "1" {
+                    try? await Task.sleep(nanoseconds: 1_200_000_000)
+                    await arm()
+                }
             }
             .refreshable {
                 await client.refresh()
@@ -57,96 +68,70 @@ struct ContentView: View {
         }
     }
 
-    private var bayTopBar: some View {
-        HStack(alignment: .center, spacing: 10) {
-            Button {
-                showCourses = true
-                Task { _ = try? await client.searchCourses() }
-            } label: {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(client.play?.course_name ?? "PULSELM")
-                        .font(.system(size: 13, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
-                    Text(playLine.isEmpty ? "Range · tap to play 18" : playLine)
-                        .font(.system(size: 11, weight: .medium, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.7))
-                        .lineLimit(1)
-                }
+    private var rangeTopBar: some View {
+        HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 1) {
+                Text("PULSELM")
+                    .font(.system(size: 13, weight: .heavy, design: .rounded))
+                    .tracking(1.4)
+                    .foregroundStyle(.white)
+                Text(client.play?.playing == true ? playLine : "Driving range")
+                    .font(.system(size: 11, weight: .medium, design: .rounded))
+                    .foregroundStyle(PulseTheme.mute)
+                    .lineLimit(1)
             }
             Spacer()
-            Button("COURSES") {
-                showCourses = true
-                Task { _ = try? await client.searchCourses() }
-            }
-            .font(.system(size: 11, weight: .bold, design: .rounded))
-            .foregroundStyle(.black)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(Color(red: 0.24, green: 1.0, blue: 0.60), in: Capsule())
-            healthBadge
-            if client.play?.playing == true || client.play?.round_complete == true {
-                Button("CARD") { showScorecard = true }
-                    .font(.system(size: 11, weight: .bold, design: .rounded))
+            clubMenu
+            if client.play?.playing == true {
+                Button("Card") { showScorecard = true }
+                    .font(.system(size: 12, weight: .semibold, design: .rounded))
                     .foregroundStyle(.white)
                     .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(.ultraThinMaterial, in: Capsule())
+                    .padding(.vertical, 7)
+                    .background(PulseTheme.panel, in: Capsule())
             }
-            Button {
-                showHostEditor.toggle()
-            } label: {
-                Image(systemName: "slider.horizontal.3")
-                    .foregroundStyle(.white)
-                    .padding(8)
-                    .background(.ultraThinMaterial, in: Circle())
-            }
-            .accessibilityLabel("Monitor address")
+            statusDot
         }
-        .padding(.horizontal, 12)
-        .padding(.top, 8)
-        .padding(.bottom, 6)
+        .padding(.horizontal, 14)
+        .padding(.top, 6)
+        .padding(.bottom, 8)
     }
 
-    private var dataTileColumn: some View {
-        let t = client.practice?.tiles
-        let shot = client.latest
-        return VStack(spacing: 6) {
-            bayTile("BALL SPEED", ShotMapping.speedString(shot?.ball_speed_mph), "mph", accent: true)
-            bayTile("CARRY", ShotMapping.carryString(shot?.carry_yd_est), "yd")
-            bayTile("LAUNCH", ShotMapping.vlaString(shot?.vla_deg), "°")
-            bayTile("HLA", ShotMapping.metricString(shot?.hla_deg, decimals: 1), "°")
-            bayTile("SPIN", ShotMapping.metricString(shot?.spin_rpm, decimals: 0), "rpm")
-            bayTile("CLUB", ShotMapping.metricString(shot?.club_speed_mph, decimals: 1), "mph")
-            bayTile("SMASH", t?.smash.map { String(format: "%.2f", $0) } ?? "—", "")
-            bayTile("TOTAL", t?.total_yd_est.map { String(format: "%.0f", $0) } ?? ShotMapping.carryString(shot?.total_yd_est), "yd")
-        }
-        .frame(width: 108)
-    }
-
-    private func bayTile(_ title: String, _ value: String, _ unit: String, accent: Bool = false) -> some View {
-        VStack(alignment: .leading, spacing: 1) {
-            Text(title)
-                .font(.system(size: 8, weight: .semibold, design: .rounded))
-                .tracking(0.6)
-                .foregroundStyle(.white.opacity(0.55))
-            HStack(alignment: .lastTextBaseline, spacing: 3) {
-                Text(value)
-                    .font(.system(size: 18, weight: .bold, design: .rounded))
-                    .foregroundStyle(accent ? Color(red: 0.24, green: 1.0, blue: 0.60) : .white)
-                    .monospacedDigit()
-                    .minimumScaleFactor(0.5)
-                    .lineLimit(1)
-                if !unit.isEmpty {
-                    Text(unit)
-                        .font(.system(size: 9, weight: .medium, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.45))
+    private var clubMenu: some View {
+        Menu {
+            ForEach(PulseTheme.clubs, id: \.self) { c in
+                Button(c) {
+                    client.selectedClub = c
+                    settings.defaultClub = c
                 }
             }
+        } label: {
+            Text(client.selectedClub)
+                .font(.system(size: 14, weight: .bold, design: .rounded))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+                .background(PulseTheme.panel, in: Capsule())
+                .overlay(Capsule().stroke(PulseTheme.stroke, lineWidth: 1))
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 6)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    private var statusDot: some View {
+        let live = client.health?.ok == true && client.health?.demo != true
+        return Circle()
+            .fill(live ? PulseTheme.lime : Color.orange)
+            .frame(width: 9, height: 9)
+            .accessibilityLabel(live ? "Live" : "Demo")
+    }
+
+    private var rangeSideRail: some View {
+        VStack(alignment: .trailing, spacing: 8) {
+            minimapPanel
+            HStack(spacing: 8) {
+                pinMenu
+                cameraMenu
+            }
+        }
     }
 
     private var minimapPanel: some View {
@@ -154,69 +139,144 @@ struct ContentView: View {
             shot: client.latest,
             session: client.shots,
             practice: client.practice,
-            holeMap: client.holeMap,
-            pinOverride: client.play?.playing == true ? (client.play?.remaining_yd ?? client.play?.pin_yd) : nil,
+            holeMap: client.play?.playing == true ? client.holeMap : nil,
+            pinOverride: pinYards,
             minimap: true,
             selectedClub: $client.selectedClub,
             gameMode: $client.gameMode
         )
-        .frame(width: 132, height: 168)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .frame(width: 104, height: 132)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(Color.white.opacity(0.2), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(PulseTheme.stroke, lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.4), radius: 8, y: 4)
+    }
+
+    private var pinMenu: some View {
+        Menu {
+            ForEach(PulseTheme.pins, id: \.self) { yd in
+                Button("\(Int(yd)) yd") {
+                    pinYards = yd
+                    settings.defaultPinYd = yd
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "flag.fill")
+                    .font(.system(size: 10))
+                Text("\(Int(pinYards))")
+                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                    .monospacedDigit()
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background(PulseTheme.panel, in: Capsule())
+            .overlay(Capsule().stroke(PulseTheme.stroke, lineWidth: 1))
+        }
+        .accessibilityLabel("Target \(Int(pinYards)) yards")
+    }
+
+    private var cameraMenu: some View {
+        Menu {
+            ForEach(RangeCameraMode.allCases) { mode in
+                Button {
+                    cameraMode = mode
+                } label: {
+                    if cameraMode == mode {
+                        Label(mode.label, systemImage: "checkmark")
+                    } else {
+                        Text(mode.label)
+                    }
+                }
+            }
+        } label: {
+            Image(systemName: "video.fill")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 36, height: 36)
+                .background(PulseTheme.panel, in: Circle())
+                .overlay(Circle().stroke(PulseTheme.stroke, lineWidth: 1))
+        }
+        .accessibilityLabel("Camera \(cameraMode.label)")
+    }
+
+    private var rangeBottomDock: some View {
+        HStack(alignment: .bottom, spacing: 10) {
+            metricDock
+            hitButton
+        }
+        .padding(.horizontal, 12)
+    }
+
+    private var metricDock: some View {
+        let shot = client.latest
+        let t = client.practice?.tiles
+        return HStack(spacing: 0) {
+            dockCell("SPEED", ShotMapping.speedString(shot?.ball_speed_mph), ShotMapping.speedUnit, accent: true)
+            dockCell("CARRY", ShotMapping.carryString(shot?.carry_yd_est), ShotMapping.distUnit)
+            dockCell("LAUNCH", ShotMapping.vlaString(shot?.vla_deg), "°")
+            dockCell("SPIN", ShotMapping.metricString(shot?.spin_rpm, decimals: 0), "rpm")
+            dockCell("HLA", ShotMapping.metricString(shot?.hla_deg, decimals: 1), "°")
+            dockCell("TOTAL", t?.total_yd_est.map { ShotMapping.carryString($0) } ?? ShotMapping.carryString(shot?.total_yd_est), ShotMapping.distUnit)
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 4)
+        .background(PulseTheme.panelStrong, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(PulseTheme.stroke, lineWidth: 1)
         )
     }
 
-    private var bayBottomBar: some View {
-        HStack(spacing: 8) {
-            Button("CONNECT") { showHostEditor = true }
-                .font(.system(size: 13, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 12)
-                .background(.ultraThinMaterial, in: Capsule())
-            Menu {
-                ForEach(["Dr", "3W", "5W", "4i", "5i", "6i", "7i", "8i", "9i", "PW", "GW", "SW", "LW"], id: \.self) { c in
-                    Button(c) { client.selectedClub = c }
-                }
-            } label: {
-                Text(client.selectedClub)
-                    .font(.system(size: 15, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 12)
-                    .background(.ultraThinMaterial, in: Capsule())
-            }
-            if client.play?.playing == true {
-                Button("Gimme") {
-                    Task {
-                        _ = try? await client.gimmePlay()
-                        _ = try? await client.fetchPlay()
-                    }
-                }
-                .font(.system(size: 13, weight: .semibold, design: .rounded))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 12)
-                .background(.ultraThinMaterial, in: Capsule())
-            }
-            Spacer()
-            Button {
-                Task { await arm() }
-            } label: {
-                Text(client.isBusy ? "…" : "ARM")
-                    .font(.system(size: 16, weight: .heavy, design: .rounded))
-                    .tracking(1.2)
-                    .foregroundStyle(Color(red: 0.02, green: 0.13, blue: 0.08))
-                    .padding(.horizontal, 28)
-                    .padding(.vertical, 12)
-                    .background(Color(red: 0.24, green: 1.0, blue: 0.60), in: Capsule())
-            }
-            .disabled(client.isBusy)
+    private func dockCell(_ title: String, _ value: String, _ unit: String, accent: Bool = false) -> some View {
+        VStack(spacing: 2) {
+            Text(title)
+                .font(.system(size: 8, weight: .semibold, design: .rounded))
+                .tracking(0.6)
+                .foregroundStyle(PulseTheme.mute)
+            Text(value)
+                .font(.system(size: 15, weight: .bold, design: .rounded))
+                .foregroundStyle(accent ? PulseTheme.lime : .white)
+                .monospacedDigit()
+                .minimumScaleFactor(0.55)
+                .lineLimit(1)
+            Text(unit)
+                .font(.system(size: 8, weight: .medium, design: .rounded))
+                .foregroundStyle(.white.opacity(0.35))
+                .opacity(unit.isEmpty ? 0 : 1)
         }
-        .padding(.horizontal, 12)
-        .padding(.top, 8)
+        .frame(maxWidth: .infinity)
+    }
+
+    private var hitButton: some View {
+        Button {
+            Task { await arm() }
+        } label: {
+            ZStack {
+                Circle().fill(PulseTheme.lime)
+                if client.isBusy {
+                    ProgressView().tint(PulseTheme.ink)
+                } else {
+                    VStack(spacing: 1) {
+                        Text("HIT")
+                            .font(.system(size: 13, weight: .heavy, design: .rounded))
+                            .tracking(1)
+                        Text(client.selectedClub)
+                            .font(.system(size: 10, weight: .bold, design: .rounded))
+                            .opacity(0.7)
+                    }
+                    .foregroundStyle(PulseTheme.ink)
+                }
+            }
+            .frame(width: 64, height: 64)
+            .shadow(color: PulseTheme.lime.opacity(0.35), radius: 10, y: 4)
+        }
+        .disabled(client.isBusy)
+        .accessibilityLabel("Hit")
+        .accessibilityHint("Records a practice shot and plays ball flight")
     }
 
     private var playBanner: some View {
@@ -511,9 +571,8 @@ struct ContentView: View {
             _ = try? await client.fetchShots()
             _ = try? await client.fetchSession()
             _ = try? await client.fetchPlay()
-            if let pin = client.play?.remaining_yd ?? client.play?.pin_yd {
-                _ = try? await client.fetchPractice(pin: pin)
-            }
+            let pin = client.play?.remaining_yd ?? client.play?.pin_yd ?? pinYards
+            _ = try? await client.fetchPractice(pin: pin)
         } catch {
             client.lastError = error.localizedDescription
         }
@@ -523,4 +582,5 @@ struct ContentView: View {
 #Preview {
     ContentView()
         .environmentObject(MonitorClient())
+        .environmentObject(PlayerSettings.shared)
 }

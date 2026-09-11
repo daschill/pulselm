@@ -47,11 +47,11 @@
 		</dict>
 	</dict>
 	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>PulseLM pairs with your Garmin Approach R10 over Bluetooth so shots appear in the app. No PC is required.</string>
+	<string>PulseLM pairs with a Garmin Approach R10 over Bluetooth so shots appear in the range. Other monitors use Wi-Fi OpenConnect.</string>
 	<key>NSBluetoothPeripheralUsageDescription</key>
-	<string>PulseLM pairs with your Garmin Approach R10 over Bluetooth so shots appear in the app.</string>
+	<string>PulseLM pairs with a Garmin Approach R10 over Bluetooth so shots appear in the range.</string>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Optional: PulseLM can also reach a Pi on your LAN. The phone works on its own.</string>
+	<string>PulseLM listens on your Wi-Fi for GSPro OpenConnect shots from Garmin, Foresight, Uneekor, SkyTrak, Mevo+, MLM2PRO, Square, and other launch monitors.</string>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UISupportedInterfaceOrientations</key>

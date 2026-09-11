@@ -279,13 +279,22 @@ final class MonitorClient: ObservableObject {
             smash: smash,
             carry_yd_est: shot?.carry_yd_est,
             total_yd_est: shot?.total_yd_est,
-            apex_yd: nil,
-            hang_time_s: nil,
-            land_angle_deg: nil,
-            dist_to_pin_yd: pin,
+            apex_yd: {
+                guard let c = shot?.carry_yd_est, let v = shot?.vla_deg else { return nil }
+                return max(8, min(70, c * 0.13 * max(0.55, v / 12)))
+            }(),
+            hang_time_s: shot?.carry_yd_est.map { max(3.2, min(6.8, $0 / 48)) },
+            land_angle_deg: shot?.vla_deg.map { max(20, $0 + 22) },
+            dist_to_pin_yd: {
+                guard let c = shot?.carry_yd_est else { return pin }
+                return abs(c - pin)
+            }(),
             curve_yd: shot?.hla_deg,
             along_yd: shot?.carry_yd_est,
-            offline_yd: nil,
+            offline_yd: {
+                guard let c = shot?.carry_yd_est, let h = shot?.hla_deg else { return nil }
+                return c * sin(h * .pi / 180)
+            }(),
             spin_axis_deg: shot?.spin_axis_deg,
             back_spin_rpm: shot?.spin_rpm,
             side_spin_rpm: nil,
